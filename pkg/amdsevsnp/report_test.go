@@ -68,7 +68,7 @@ func Test_Fetch_Report(t *testing.T) {
 	expectedByteString := hex.EncodeToString(reportData[:])
 
 	if expectedByteString != hex.EncodeToString(reportBytes[REPORT_DATA_OFFSET:REPORT_DATA_OFFSET+REPORT_DATA_SIZE]) {
-		t.Fatalf("report data doesn't match: %v", err)
+		t.Fatalf("report data doesn't match: expected: %s, actual: %s", expectedByteString, hex.EncodeToString(reportBytes[REPORT_DATA_OFFSET:REPORT_DATA_OFFSET+REPORT_DATA_SIZE]))
 	}
 
 	t.Logf("Report contents: %s\n", hex.EncodeToString(reportBytes))

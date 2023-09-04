@@ -164,7 +164,7 @@ type reportResponse struct {
 }
 
 // Size of the following struct in include/uapi/linux/sev-guest.h.
-// It will have the conteints of reportResponse in the first unsafe.Pointer(reportResponse) bytes.
+// It will have the conteints of reportResponse in the first unsafe.Sizeof(reportResponse{}) bytes.
 const reportResponseContainerLength6 = 4000
 
 const snpDevicePath5 = "/dev/sev"
@@ -263,6 +263,12 @@ func fetchRawSNPReport6(reportData []byte) ([]byte, error) {
 	if err := linux.Ioctl(f, reportCode6|ioctlBase6, unsafe.Pointer(payload)); err != nil {
 		return nil, err
 	}
+
+	reportOutSize := unsafe.Sizeof(msgReportOut)
+	reportOutPtr := unsafe.Pointer(&msgReportOut)
+	reportOutAsSlice := (*[reportResponseContainerLength6]byte)(reportOutPtr)
+	copy(reportOutAsSlice[:reportOutSize], reportOutContainer[:reportOutSize])
+
 	return msgReportOut.Report[:], nil
 }
 

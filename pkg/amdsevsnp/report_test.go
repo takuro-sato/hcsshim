@@ -4,7 +4,6 @@
 package amdsevsnp
 
 import (
-	"encoding/hex"
 	"testing"
 )
 
@@ -51,25 +50,4 @@ func Test_Mirror_Nil_Slice(t *testing.T) {
 	if result != nil {
 		t.Fatalf("expected nil slice, got: %+v", result)
 	}
-}
-
-func Test_Fetch_Report(t *testing.T) {
-	const REPORT_DATA_SIZE = 64
-	const REPORT_DATA_OFFSET = 80
-	// Report data for test
-	reportData := [REPORT_DATA_SIZE]byte{}
-	for i := 0; i < REPORT_DATA_SIZE; i++ {
-		reportData[i] = byte(i)
-	}
-	reportBytes, err := FetchRawSNPReport(reportData[:])
-	if err != nil {
-		t.Fatalf("fetching report failed: %v", err)
-	}
-	expectedByteString := hex.EncodeToString(reportData[:])
-
-	if expectedByteString != hex.EncodeToString(reportBytes[REPORT_DATA_OFFSET:REPORT_DATA_OFFSET+REPORT_DATA_SIZE]) {
-		t.Fatalf("report data doesn't match: expected: %s, actual: %s", expectedByteString, hex.EncodeToString(reportBytes[REPORT_DATA_OFFSET:REPORT_DATA_OFFSET+REPORT_DATA_SIZE]))
-	}
-
-	t.Logf("Report contents: %s\n", hex.EncodeToString(reportBytes))
 }

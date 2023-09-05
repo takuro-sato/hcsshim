@@ -60,8 +60,6 @@ const (
 	guestType5 = 'S'
 	// SEV-SNP IOCTL size, same as unsafe.Sizeof(guestRequest5{}).
 	guestSize5 = 40
-	ioctlBase5 = linux.IocWRBase | guestType5<<linux.IocTypeShift | guestSize5<<linux.IocSizeShift
-
 	// SEV-SNP requests
 	reportCode5 = 0x1
 )
@@ -72,8 +70,6 @@ const (
 	guestType6 = 'S'
 	// SEV-SNP IOCTL size, same as unsafe.Sizeof(guestRequest6{}).
 	guestSize6 = 32
-	ioctlBase6 = linux.IocWRBase | guestType6<<linux.IocTypeShift | guestSize6<<linux.IocSizeShift
-
 	// SEV-SNP requests
 	reportCode6 = 0x0
 )
@@ -225,7 +221,7 @@ func fetchRawSNPReport5(reportData []byte) ([]byte, error) {
 		Error:           0,
 	}
 
-	if err := linux.Ioctl(f, reportCode5|ioctlBase5, unsafe.Pointer(payload)); err != nil {
+	if err := linux.Ioctl(f, linux.Iowr(guestType5, reportCode5, guestSize5), unsafe.Pointer(payload)); err != nil {
 		return nil, err
 	}
 	return msgReportOut.Report[:], nil
@@ -260,7 +256,7 @@ func fetchRawSNPReport6(reportData []byte) ([]byte, error) {
 		Error:        0,
 	}
 
-	if err := linux.Ioctl(f, reportCode6|ioctlBase6, unsafe.Pointer(payload)); err != nil {
+	if err := linux.Ioctl(f, linux.Iowr(guestType6, reportCode6, guestSize6), unsafe.Pointer(payload)); err != nil {
 		return nil, err
 	}
 

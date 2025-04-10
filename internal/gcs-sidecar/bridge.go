@@ -360,7 +360,6 @@ func (b *Bridge) ListenAndServeShimRequests() error {
 				logrus.Error(err)
 				break
 			}
-
 			_, err = buffer.WriteTo(b.inboxGCSConn)
 			if err != nil {
 				err = errors.Wrap(err, "err forwarding shim req to inbox GCS")

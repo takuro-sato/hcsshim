@@ -37,6 +37,7 @@ const (
 	maxGeneratedFragmentIssuerLength           = 16
 	maxPlan9MountTargetLength                  = 64
 	maxPlan9MountIndex                         = 16
+	osType                                     = "linux"
 )
 
 func Test_RegoTemplates(t *testing.T) {
@@ -146,7 +147,8 @@ func Test_MarshalRego_Policy(t *testing.T) {
 			return false
 		}
 
-		_, err = newRegoPolicy(expected, defaultMounts, privilegedMounts)
+		_, err = newRegoPolicy(expected, defaultMounts, privilegedMounts, osType)
+
 		if err != nil {
 			t.Errorf("unable to convert policy to rego: %v", err)
 			return false
@@ -232,7 +234,8 @@ func Test_MarshalRego_Fragment(t *testing.T) {
 func Test_Rego_EnforceDeviceMountPolicy_No_Matches(t *testing.T) {
 	f := func(p *generatedConstraints) bool {
 		securityPolicy := p.toPolicy()
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Errorf("unable to convert policy to rego: %v", err)
 			return false
@@ -257,7 +260,8 @@ func Test_Rego_EnforceDeviceMountPolicy_No_Matches(t *testing.T) {
 func Test_Rego_EnforceDeviceMountPolicy_Matches(t *testing.T) {
 	f := func(p *generatedConstraints) bool {
 		securityPolicy := p.toPolicy()
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Errorf("unable to convert policy to rego: %v", err)
 			return false
@@ -280,7 +284,8 @@ func Test_Rego_EnforceDeviceMountPolicy_Matches(t *testing.T) {
 func Test_Rego_EnforceDeviceUmountPolicy_Removes_Device_Entries(t *testing.T) {
 	f := func(p *generatedConstraints) bool {
 		securityPolicy := p.toPolicy()
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Error(err)
 			return false
@@ -318,7 +323,8 @@ func Test_Rego_EnforceDeviceUmountPolicy_Removes_Device_Entries(t *testing.T) {
 func Test_Rego_EnforceDeviceMountPolicy_Duplicate_Device_Target(t *testing.T) {
 	f := func(p *generatedConstraints) bool {
 		securityPolicy := p.toPolicy()
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Errorf("unable to convert policy to rego: %v", err)
 			return false
@@ -413,7 +419,8 @@ func Test_Rego_EnforceOverlayMountPolicy_Layers_With_Same_Root_Hash(t *testing.T
 	constraints.containers = []*securityPolicyContainer{container}
 	constraints.externalProcesses = generateExternalProcesses(testRand)
 	securityPolicy := constraints.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatal("Unable to create security policy")
 	}
@@ -449,7 +456,8 @@ func Test_Rego_EnforceOverlayMountPolicy_Layers_Shared_Layers(t *testing.T) {
 	constraints.externalProcesses = generateExternalProcesses(testRand)
 
 	securityPolicy := constraints.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatal("Unable to create security policy")
 	}
@@ -559,7 +567,7 @@ func Test_Rego_EnforceOverlayMountPolicy_Reusing_ID_Across_Overlays(t *testing.T
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts), osType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -611,7 +619,8 @@ func Test_Rego_EnforceOverlayMountPolicy_Multiple_Instances_Same_Container(t *te
 		}
 
 		securityPolicy := constraints.toPolicy()
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Fatalf("failed create enforcer")
 		}
@@ -899,7 +908,7 @@ func Test_Rego_EnforceCreateContainer_Start_All_Containers(t *testing.T) {
 
 		policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 			toOCIMounts(defaultMounts),
-			toOCIMounts(privilegedMounts))
+			toOCIMounts(privilegedMounts), osType)
 		if err != nil {
 			t.Error(err)
 			return false
@@ -1779,7 +1788,8 @@ func Test_Rego_MountPolicy_MountPrivilegedWhenNotAllowed(t *testing.T) {
 func Test_Rego_Version_Unregistered_Enforcement_Point(t *testing.T) {
 	gc := generateConstraints(testRand, maxContainersInGeneratedConstraints)
 	securityPolicy := gc.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -1800,7 +1810,8 @@ func Test_Rego_Version_Unregistered_Enforcement_Point(t *testing.T) {
 func Test_Rego_Version_Future_Enforcement_Point(t *testing.T) {
 	gc := generateConstraints(testRand, maxContainersInGeneratedConstraints)
 	securityPolicy := gc.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -1829,7 +1840,8 @@ func Test_Rego_Version_Future_Enforcement_Point(t *testing.T) {
 // by their respective version information.
 func Test_Rego_Version_Unavailable_Enforcement_Point(t *testing.T) {
 	code := "package policy\n\napi_version := \"0.0.1\""
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -1862,7 +1874,8 @@ func Test_Rego_Version_Unavailable_Enforcement_Point(t *testing.T) {
 
 func Test_Rego_Enforcement_Point_Allowed(t *testing.T) {
 	code := "package policy\n\napi_version := \"0.0.1\""
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -1913,7 +1926,8 @@ api_version := "0.0.1"
 
 __fixture_for_allowed_extra__ := {"allowed": true}
 `
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -1950,7 +1964,8 @@ __fixture_for_allowed_extra__ := {"allowed": true}
 
 func Test_Rego_No_API_Version(t *testing.T) {
 	code := "package policy"
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create a new Rego policy: %v", err)
 	}
@@ -2433,7 +2448,8 @@ exec_external := {
 			strings.Join(generateEnvs(envSet), `","`),
 			strings.Join(generateEnvs(envSet), `","`))
 
-		policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{})
+		policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{}, osType)
+
 		if err != nil {
 			t.Errorf("error creating policy: %v", err)
 			return false
@@ -2490,7 +2506,8 @@ func Test_Rego_InvalidEnvList(t *testing.T) {
 		"env_list": true
 	}`, apiVersion, frameworkVersion)
 
-	policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("error creating policy: %v", err)
 	}
@@ -2539,7 +2556,8 @@ func Test_Rego_InvalidEnvList_Member(t *testing.T) {
 		"env_list": ["one", ["two"], "three"]
 	}`, apiVersion, frameworkVersion)
 
-	policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(rego, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("error creating policy: %v", err)
 	}
@@ -2796,7 +2814,8 @@ func Test_Rego_ExecExternalProcessPolicy_DropEnvs_Multiple(t *testing.T) {
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2840,7 +2859,8 @@ func Test_Rego_ExecExternalProcessPolicy_DropEnvs_Multiple_NoMatch(t *testing.T)
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3796,7 +3816,7 @@ func Test_Rego_LoadFragment_SemverVersion(t *testing.T) {
 
 		defaultMounts := toOCIMounts(generateMounts(testRand))
 		privilegedMounts := toOCIMounts(generateMounts(testRand))
-		policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts)
+		policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts, osType)
 
 		if err != nil {
 			t.Fatalf("error compiling policy: %v", err)
@@ -4159,7 +4179,8 @@ load_fragment := {"allowed": true, "add_module": true} {
 mount_device := data.fragment.mount_device
 	`, apiVersion, frameworkVersion, issuer, feed)
 
-	policy, err := newRegoPolicy(policyCode, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(policyCode, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create Rego policy: %v", err)
 	}
@@ -4441,7 +4462,8 @@ func Test_Rego_ExecExternal_StdioAccess_NotAllowed(t *testing.T) {
 	gc.externalProcesses = append(gc.externalProcesses, gc.externalProcesses[0].clone())
 	gc.externalProcesses[0].allowStdioAccess = !gc.externalProcesses[0].allowStdioAccess
 
-	policy, err := newRegoPolicy(gc.toPolicy().marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(gc.toPolicy().marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("error marshaling policy: %v", err)
 	}
@@ -4851,7 +4873,8 @@ func Test_Rego_MissingEnvList(t *testing.T) {
 	exec_external := {"allowed": true}
 	`, apiVersion)
 
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("error compiling the rego policy: %v", err)
 	}
@@ -5004,7 +5027,8 @@ func Test_Rego_ExecExternalProcessPolicy_ConflictingAllowStdioAccessHasErrorMess
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5121,7 +5145,8 @@ func Test_Rego_ExecExternalProcessPolicy_RequiredEnvMissingHasErrorMessage(t *te
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5597,7 +5622,8 @@ func Test_Rego_FrameworkSVN(t *testing.T) {
 
 	policy, err := newRegoPolicy(code,
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatalf("unable to create policy: %v", err)
 	}
@@ -5627,7 +5653,7 @@ func Test_Rego_Fragment_FrameworkSVN(t *testing.T) {
 
 	defaultMounts := toOCIMounts(generateMounts(testRand))
 	privilegedMounts := toOCIMounts(generateMounts(testRand))
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts)
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts, osType)
 
 	if err != nil {
 		t.Fatalf("error compiling policy: %v", err)
@@ -5675,7 +5701,8 @@ func Test_Rego_APISVN(t *testing.T) {
 
 	policy, err := newRegoPolicy(code,
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		t.Fatalf("unable to create policy: %v", err)
 	}
@@ -5702,7 +5729,8 @@ func Test_Rego_NoReason(t *testing.T) {
 
 	mount_device := {"allowed": false}
 `
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create policy: %v", err)
 	}
@@ -5795,7 +5823,8 @@ func Test_Rego_ErrorTruncation_CustomPolicy(t *testing.T) {
 	reason := {"custom_error": "%s"}
 `, randString(testRand, 2048))
 
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create policy: %v", err)
 	}
@@ -5823,7 +5852,8 @@ func Test_Rego_Missing_Enforcement_Point(t *testing.T) {
 	reason := {"errors": data.framework.errors}
 `
 
-	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(code, []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		t.Fatalf("unable to create policy: %v", err)
 	}
@@ -6101,7 +6131,8 @@ type regoOverlayTestConfig struct {
 
 func setupRegoOverlayTest(gc *generatedConstraints, valid bool) (tc *regoOverlayTestConfig, err error) {
 	securityPolicy := gc.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		return nil, err
 	}
@@ -6164,7 +6195,8 @@ func setupRegoCreateContainerTest(gc *generatedConstraints, testContainer *secur
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6230,7 +6262,8 @@ func setupRegoRunningContainerTest(gc *generatedConstraints, privileged bool) (t
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6331,7 +6364,8 @@ func setupExternalProcessTest(gc *generatedConstraints) (tc *regoExternalPolicyT
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6358,7 +6392,8 @@ func setupPlan9MountTest(gc *generatedConstraints) (tc *regoPlan9MountTestConfig
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6439,7 +6474,8 @@ func setupGetPropertiesTest(gc *generatedConstraints, allowPropertiesAccess bool
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6462,7 +6498,8 @@ func setupDumpStacksTest(constraints *generatedConstraints, allowDumpStacks bool
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 	if err != nil {
 		return nil, err
 	}
@@ -6500,7 +6537,8 @@ type regoPolicyOnlyTestConfig struct {
 
 func setupRegoPolicyOnlyTest(gc *generatedConstraints) (tc *regoPolicyOnlyTestConfig, err error) {
 	securityPolicy := gc.toPolicy()
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		return nil, err
 	}
@@ -6664,7 +6702,7 @@ func setupRegoFragmentTestConfig(gc *generatedConstraints, numFragments int, inc
 	securityPolicy := gc.toPolicy()
 	defaultMounts := toOCIMounts(generateMounts(testRand))
 	privilegedMounts := toOCIMounts(generateMounts(testRand))
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts)
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), defaultMounts, privilegedMounts, osType)
 
 	if err != nil {
 		return nil, err
@@ -6748,7 +6786,8 @@ func setupRegoDropEnvsTest(disjoint bool) (*regoContainerTestConfig, error) {
 
 	policy, err := newRegoPolicy(securityPolicy.marshalRego(),
 		toOCIMounts(defaultMounts),
-		toOCIMounts(privilegedMounts))
+		toOCIMounts(privilegedMounts),
+		osType)
 
 	if err != nil {
 		return nil, err
@@ -6842,7 +6881,8 @@ func setupFrameworkVersionTest(gc *generatedConstraints, policyVersion string, v
 	}
 
 	securityPolicy := gc.toPolicy()
-	policy, err := newRegoPolicy(setFrameworkVersion(securityPolicy.marshalRego(), policyVersion), []oci.Mount{}, []oci.Mount{})
+	policy, err := newRegoPolicy(setFrameworkVersion(securityPolicy.marshalRego(), policyVersion), []oci.Mount{}, []oci.Mount{}, osType)
+
 	if err != nil {
 		return nil, err
 	}
@@ -7286,7 +7326,8 @@ func setupRegoScratchMountTest(
 
 	defaultMounts := generateMounts(testRand)
 	privilegedMounts := generateMounts(testRand)
-	policy, err := newRegoPolicy(securityPolicy.marshalRego(), toOCIMounts(defaultMounts), toOCIMounts(privilegedMounts))
+	policy, err := newRegoPolicy(securityPolicy.marshalRego(), toOCIMounts(defaultMounts), toOCIMounts(privilegedMounts), osType)
+
 	if err != nil {
 		return nil, err
 	}

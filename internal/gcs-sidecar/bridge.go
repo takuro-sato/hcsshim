@@ -86,13 +86,6 @@ func NewBridge(shimConn io.ReadWriteCloser, inboxGCSConn io.ReadWriteCloser, ini
 	}
 }
 
-func NewPolicyEnforcer(initialEnforcer securitypolicy.SecurityPolicyEnforcer) *SecurityPoliyEnforcer {
-	return &SecurityPoliyEnforcer{
-		securityPolicyEnforcerSet: false,
-		securityPolicyEnforcer:    initialEnforcer,
-	}
-}
-
 // UnknownMessage represents the default handler logic for an unmatched request
 // type sent from the bridge.
 func UnknownMessage(r *request) error {

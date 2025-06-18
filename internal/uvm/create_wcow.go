@@ -115,8 +115,8 @@ func SetDefaultConfidentialWCOWBootConfig(opts *OptionsWCOW) error {
 	}
 
 	//TODO(ambarve): for testing only remove later
-	opts.IsolationType = "GuestStateOnly"
-	opts.DisableSecureBoot = true
+	opts.IsolationType = "VirtualizationBasedSecurity"
+	opts.DisableSecureBoot = false
 	opts.ConsolePipe = "\\\\.\\pipe\\uvmpipe"
 	opts.NoSecurityHardware = true
 	return nil

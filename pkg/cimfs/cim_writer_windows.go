@@ -507,7 +507,7 @@ func sealBlockCIM(blockPath string) error {
 }
 
 // getDigest returns the digest of a sealed CIM.
-func getVerificationInfo(blockPath string) ([]byte, error) {
+func GetVerificationInfo(blockPath string) ([]byte, error) {
 	var (
 		isSealed        uint32
 		hashSize        uint64

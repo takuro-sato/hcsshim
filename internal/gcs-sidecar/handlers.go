@@ -4,6 +4,7 @@
 package bridge
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -660,13 +661,19 @@ func (b *Bridge) modifySettings(req *request) (err error) {
 				if err != nil {
 					return errors.Wrap(err, "err getting scsiDevPath")
 				}
+				physicalDevPath := fmt.Sprintf(devPathFormat, devNumber)
 				layerCim := cimfs.BlockCIM{
 					Type:      cimfs.BlockCIMTypeDevice,
-					BlockPath: fmt.Sprintf(devPathFormat, devNumber),
+					BlockPath: physicalDevPath,
 					CimName:   blockCimDevice.CimName,
 				}
+				cimRootDigestBytes, err := cimfs.GetVerificationInfo(physicalDevPath)
+				if err != nil {
+					return fmt.Errorf("failed to get CIM verification info: %w", err)
+				}
+				layerHashes[i] = base64.URLEncoding.EncodeToString(cimRootDigestBytes)
 				layerCIMs = append(layerCIMs, &layerCim)
-				layerHashes[i] = blockCimDevice.Digest
+				log.G(ctx).Debugf("block CIM layer digest %s, path: %s\n", layerHashes[i], physicalDevPath)
 			}
 
 			// skip the merged cim and verify individual layer hashes

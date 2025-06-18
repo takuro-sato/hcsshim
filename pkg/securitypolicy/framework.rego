@@ -250,21 +250,35 @@ workingDirectory_ok(working_dir) {
 }
 
 privileged_ok(elevation_allowed) {
+    is_linux
     not input.privileged
 }
 
 privileged_ok(elevation_allowed) {
+    is_linux
     input.privileged
     input.privileged == elevation_allowed
 }
 
+privileged_ok(no_new_privileges) {
+    # no-op for windows
+    is_windows
+}
+
 noNewPrivileges_ok(no_new_privileges) {
+    is_linux
     no_new_privileges
     input.noNewPrivileges
 }
 
 noNewPrivileges_ok(no_new_privileges) {
+    is_linux
     no_new_privileges == false
+}
+
+noNewPrivileges_ok(no_new_privileges) {
+    # no-op for windows
+    is_windows
 }
 
 idName_ok(pattern, "any", value) {
@@ -284,6 +298,7 @@ idName_ok(pattern, "re2", value) {
 }
 
 user_ok(user) {
+    is_linux
     user.umask == input.umask
     idName_ok(user.user_idname.pattern, user.user_idname.strategy, input.user)
     every group in input.groups {
@@ -292,8 +307,18 @@ user_ok(user) {
     }
 }
 
+user_ok(user) {
+    is_windows
+    input.user == user
+}
+
 seccomp_ok(seccomp_profile_sha256) {
+    is_linux
     input.seccompProfileSHA256 == seccomp_profile_sha256
+}
+
+seccomp_ok(seccomp_profile_sha256) {
+    is_windows
 }
 
 default container_started := false
@@ -405,6 +430,7 @@ all_caps_sets_are_equal(sets) := caps {
 }
 
 valid_caps_for_all(containers, privileged) := caps {
+    is_linux
     allow_capability_dropping
 
     # find largest matching capabilities sets aka "the most specific"
@@ -416,18 +442,30 @@ valid_caps_for_all(containers, privileged) := caps {
 }
 
 valid_caps_for_all(containers, privileged) := caps {
+    is_linux
     not allow_capability_dropping
 
     # no dropping allowed, so we just return the input
     caps := input.capabilities
 }
 
+valid_caps_for_all(containers, privileged) := caps {
+    # no-op for windows
+    is_windows
+    caps := input.capabilities
+}
+
 caps_ok(allowed_caps, requested_caps) {
+    is_linux
     capsList_ok(allowed_caps.bounding, requested_caps.bounding)
     capsList_ok(allowed_caps.effective, requested_caps.effective)
     capsList_ok(allowed_caps.inheritable, requested_caps.inheritable)
     capsList_ok(allowed_caps.permitted, requested_caps.permitted)
     capsList_ok(allowed_caps.ambient, requested_caps.ambient)
+}
+
+caps_ok(allowed_caps, requested_caps) {
+    is_windows
 }
 
 get_capabilities(container, privileged) := capabilities {
@@ -514,11 +552,10 @@ create_container := {"metadata": [updateMatches, addStarted],
 
     # check to see if the capabilities variables match, dropping
     # them if allowed (and necessary)
-    caps_list := valid_caps_for_all(possible_after_env_containers, input.privileged)
-    possible_after_caps_containers := [container |
-        container := possible_after_env_containers[_]
-        caps_ok(get_capabilities(container, input.privileged), caps_list)
-    ]
+    caps_result := possible_container_after_caps(possible_after_env_containers, input.privileged)
+
+    possible_after_caps_containers := caps_result.containers
+    caps_list := caps_result.caps_list
 
     count(possible_after_caps_containers) > 0
 
@@ -549,6 +586,24 @@ create_container := {"metadata": [updateMatches, addStarted],
             "privileged": input.privileged,
         },
     }
+}
+possible_container_after_caps(env_containers, privileged) := {
+    "containers": env_containers,
+    "caps_list": []
+} {
+    is_windows
+}
+
+possible_container_after_caps(env_containers, privileged) := {
+    "containers": filtered,
+    "caps_list": caps_list
+} {
+    is_linux
+    caps_list := valid_caps_for_all(env_containers, privileged)
+    filtered := [container |
+        container := env_containers[_]
+        caps_ok(get_capabilities(container, privileged), caps_list)
+    ]
 }
 
 mountSource_ok(constraint, source) {
@@ -612,9 +667,22 @@ mount_ok(mounts, allow_elevated, mount) {
 }
 
 mountList_ok(mounts, allow_elevated) {
+    is_linux
     every mount in input.mounts {
         mount_ok(mounts, allow_elevated, mount)
     }
+}
+mountList_ok(mounts, allow_elevated) {
+    # no-op for windows
+    is_windows
+}
+
+is_linux {
+    data.metadata.operatingsystem[ostype] == "linux"
+}
+
+is_windows {
+    data.metadata.operatingsystem[ostype] == "windows"
 }
 
 default exec_in_container := {"allowed": false}
@@ -652,11 +720,10 @@ exec_in_container := {"metadata": [updateMatches],
 
     # check to see if the capabilities variables match, dropping
     # them if allowed (and necessary)
-    caps_list := valid_caps_for_all(possible_after_env_containers, container_privileged)
-    possible_after_caps_containers := [container |
-        container := possible_after_env_containers[_]
-        caps_ok(get_capabilities(container, container_privileged), caps_list)
-    ]
+    caps_result := possible_container_after_caps(possible_after_env_containers, container_privileged)
+
+    possible_after_caps_containers := caps_result.containers
+    caps_list := caps_result.caps_list
 
     count(possible_after_caps_containers) > 0
 
@@ -1112,6 +1179,7 @@ privileged_matches {
 }
 
 errors["privileged escalation not allowed"] {
+    is_linux
     input.rule in ["create_container"]
     not privileged_matches
 }
@@ -1289,6 +1357,7 @@ mount_matches(mount) {
 }
 
 errors[mountError] {
+    is_linux
     input.rule == "create_container"
     bad_mounts := [mount.destination |
         mount := input.mounts[_]
@@ -1437,6 +1506,7 @@ errors[fragment_framework_version_error] {
 }
 
 errors["containers only distinguishable by allow_stdio_access"] {
+    is_linux
     input.rule == "create_container"
 
     not container_started
@@ -1526,6 +1596,7 @@ noNewPrivileges_matches {
 }
 
 errors["invalid noNewPrivileges"] {
+    is_linux
     input.rule in ["create_container", "exec_in_container"]
     not noNewPrivileges_matches
 }
@@ -1548,11 +1619,13 @@ user_matches {
 }
 
 errors["invalid user"] {
+    is_linux
     input.rule in ["create_container", "exec_in_container"]
     not user_matches
 }
 
 errors["capabilities don't match"] {
+    is_linux
     input.rule == "create_container"
 
     not container_started
@@ -1592,6 +1665,7 @@ errors["capabilities don't match"] {
 }
 
 errors["capabilities don't match"] {
+    is_linux
     input.rule == "exec_in_container"
 
     container_started
@@ -1631,6 +1705,7 @@ errors["capabilities don't match"] {
 # covers exec_in_container as well. it shouldn't be possible to ever get
 # an exec_in_container as it "inherits" capabilities rules from create_container
 errors["containers only distinguishable by capabilties"] {
+    is_linux
     input.rule == "create_container"
 
     allow_capability_dropping
@@ -1676,6 +1751,7 @@ seccomp_matches {
 }
 
 errors["invalid seccomp"] {
+    is_linux
     input.rule == "create_container"
     not seccomp_matches
 }

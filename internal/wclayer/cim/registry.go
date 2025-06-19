@@ -62,7 +62,7 @@ func getOsBuildNumberFromRegistry(regHivePath string) (_ string, err error) {
 	dataBuf := make([]byte, dataLen)
 
 	if err = winapi.OROpenHive(regHivePath, &storeHandle); err != nil {
-		return "", fmt.Errorf("failed to open registry store at %s: %s", regHivePath, err)
+		return "", fmt.Errorf("failed to open registry store at %s: %w", regHivePath, err)
 	}
 	defer func() {
 		if closeErr := winapi.ORCloseHive(storeHandle); closeErr != nil {
@@ -74,7 +74,7 @@ func getOsBuildNumberFromRegistry(regHivePath string) (_ string, err error) {
 	}()
 
 	if err = winapi.OROpenKey(storeHandle, keyPath, &keyHandle); err != nil {
-		return "", fmt.Errorf("failed to open key at %s: %s", keyPath, err)
+		return "", fmt.Errorf("failed to open key at %s: %w", keyPath, err)
 	}
 	defer func() {
 		if closeErr := winapi.ORCloseKey(keyHandle); closeErr != nil {
@@ -88,7 +88,7 @@ func getOsBuildNumberFromRegistry(regHivePath string) (_ string, err error) {
 	}()
 
 	if err = winapi.ORGetValue(keyHandle, "", valueName, &dataType, &dataBuf[0], &dataLen); err != nil {
-		return "", fmt.Errorf("failed to get value of %s: %s", valueName, err)
+		return "", fmt.Errorf("failed to get value of %s: %w", valueName, err)
 	}
 
 	if dataType != uint32(winapi.REG_TYPE_SZ) {

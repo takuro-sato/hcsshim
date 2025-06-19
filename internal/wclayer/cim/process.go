@@ -13,8 +13,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-const defaultVHDXBlockSizeInMB = 1
-
 // processUtilityVMLayer will handle processing of UVM specific files when we start
 // supporting UVM based containers with CimFS in the future.
 func processUtilityVMLayer(ctx context.Context, layerPath string) error {

@@ -727,7 +727,7 @@ func TestVerifiedSingleFileBlockCIMMount(t *testing.T) {
 	writer := openNewCIM(t, tc)
 	writeCIM(t, writer, testContents)
 
-	rootHash, err := getVerificationInfo(blockPath)
+	rootHash, err := GetVerificationInfo(blockPath)
 	if err != nil {
 		t.Fatalf("failed to get verification info: %s", err)
 	}

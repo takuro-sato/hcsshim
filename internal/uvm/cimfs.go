@@ -76,7 +76,10 @@ func (uvm *UtilityVM) MountBlockCIMs(ctx context.Context, mergedCIM *cimfs.Block
 		umb.scsiMounts = append(umb.scsiMounts, sm)
 		defer func() {
 			if err != nil {
-				sm.Release(ctx)
+				relErr := sm.Release(ctx)
+				if relErr != nil {
+					log.G(ctx).WithError(err).Warnf("cleanup on failure error: %w", relErr)
+				}
 			}
 		}()
 	}

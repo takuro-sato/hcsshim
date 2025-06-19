@@ -651,6 +651,7 @@ func (b *Bridge) modifySettings(req *request) (err error) {
 
 			var layerCIMs []*cimfs.BlockCIM
 			layerHashes := make([]string, len(wcowBlockCimMounts.BlockCIMs))
+			layerDigests := make([][]byte, len(wcowBlockCimMounts.BlockCIMs))
 			ctx := req.ctx
 			for i, blockCimDevice := range wcowBlockCimMounts.BlockCIMs {
 				// Get the scsi device path for the blockCim lun
@@ -671,6 +672,7 @@ func (b *Bridge) modifySettings(req *request) (err error) {
 				if err != nil {
 					return fmt.Errorf("failed to get CIM verification info: %w", err)
 				}
+				layerDigests[i] = cimRootDigestBytes
 				layerHashes[i] = base64.URLEncoding.EncodeToString(cimRootDigestBytes)
 				layerCIMs = append(layerCIMs, &layerCim)
 				log.G(ctx).Debugf("block CIM layer digest %s, path: %s\n", layerHashes[i], physicalDevPath)
@@ -694,7 +696,7 @@ func (b *Bridge) modifySettings(req *request) (err error) {
 					return errors.Wrap(err, "error mounting multilayer block cims")
 				}
 			} else {
-				_, err := cimfs.Mount(filepath.Join(layerCIMs[0].BlockPath, layerCIMs[0].CimName), wcowBlockCimMounts.VolumeGuid, wcowBlockCimMounts.MountFlags)
+				_, err := cimfs.MountVerifiedBlockCIM(layerCIMs[0], wcowBlockCimMounts.MountFlags, wcowBlockCimMounts.VolumeGuid, layerDigests[0])
 				if err != nil {
 					return errors.Wrap(err, "error mounting merged block cims")
 				}

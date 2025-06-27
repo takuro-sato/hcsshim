@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"encoding/json"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/Microsoft/go-winio/pkg/guid"
@@ -114,9 +115,13 @@ func SetDefaultConfidentialWCOWBootConfig(opts *OptionsWCOW) error {
 		}
 	}
 
+	if opts.IsolationType == "" {
+		opts.IsolationType = "GuestStateOnly"
+	}
+
 	//TODO(ambarve): for testing only remove later
-	opts.IsolationType = "VirtualizationBasedSecurity"
-	opts.DisableSecureBoot = false
+	
+	// opts.DisableSecureBoot = true // Use false if possible for demo. Maybe it's necessary. There is a HCL code to check it to be false.
 	opts.ConsolePipe = "\\\\.\\pipe\\uvmpipe"
 	opts.NoSecurityHardware = true
 	return nil
@@ -251,9 +256,9 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 			ComputeTopology: &hcsschema.Topology{
 				Memory: &hcsschema.VirtualMachineMemory{
 					SizeInMB:        memorySizeInMB,
-					AllowOvercommit: opts.AllowOvercommit,
+					// AllowOvercommit: opts.AllowOvercommit,
 					// EnableHotHint is not compatible with physical.
-					EnableHotHint:        opts.AllowOvercommit,
+					// EnableHotHint:        opts.AllowOvercommit,
 					EnableDeferredCommit: opts.EnableDeferredCommit,
 					LowMMIOGapInMB:       opts.LowMMIOGapInMB,
 					HighMMIOBaseInMB:     opts.HighMMIOBaseInMB,
@@ -279,6 +284,31 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 	if numa != nil || numaProcessors != nil {
 		firmwareFallbackMeasured := hcsschema.VirtualSlitType_FIRMWARE_FALLBACK_MEASURED
 		doc.VirtualMachine.ComputeTopology.Memory.SlitType = &firmwareFallbackMeasured
+	}
+
+	// Hack to change vsock config
+	// type HvSocketServiceConfig struct {
+
+	// 	//  SDDL string that HvSocket will check before allowing a host process to bind  to this specific service.  If not specified, defaults to the system DefaultBindSecurityDescriptor, defined in  HvSocketSystemWpConfig in V1.
+	// 	BindSecurityDescriptor string `json:"BindSecurityDescriptor,omitempty"`
+
+	// 	//  SDDL string that HvSocket will check before allowing a host process to connect  to this specific service.  If not specified, defaults to the system DefaultConnectSecurityDescriptor, defined in  HvSocketSystemWpConfig in V1.
+	// 	ConnectSecurityDescriptor string `json:"ConnectSecurityDescriptor,omitempty"`
+
+	// 	//  If true, HvSocket will process wildcard binds for this service/system combination.  Wildcard binds are secured in the registry at  SOFTWARE/Microsoft/Windows NT/CurrentVersion/Virtualization/HvSocket/WildcardDescriptors
+	// 	AllowWildcardBinds bool `json:"AllowWildcardBinds,omitempty"`
+
+	// 	// Disabled controls whether the HvSocket service is accepting connection requests.
+	// 	// This set to true will make the service refuse all incoming connections as well as cancel
+	// 	// any connections already established. The service itself will still be active however
+	// 	// and can be re-enabled at a future time.
+	// 	Disabled bool `json:"Disabled,omitempty"`
+	// }
+
+	opts.AdditionalHyperVConfig["65722b62-db94-4d5c-a656-ae70c9fc6233"] = hcsschema.HvSocketServiceConfig{
+		BindSecurityDescriptor: "D:P(A;;FA;;;WD)",
+		ConnectSecurityDescriptor : "D:P(A;;FA;;;SY)(A;;FA;;;BA)",
+		AllowWildcardBinds : true,
 	}
 
 	maps.Copy(doc.VirtualMachine.Devices.HvSocket.HvSocketConfig.ServiceTable, opts.AdditionalHyperVConfig)
@@ -389,8 +419,8 @@ func prepareSecurityConfigDoc(ctx context.Context, uvm *UtilityVM, opts *Options
 		}
 	}
 
-	memoryBacking := hcsschema.MemoryBackingType_PHYSICAL
-	doc.VirtualMachine.ComputeTopology.Memory.Backing = &memoryBacking
+	// memoryBacking := hcsschema.MemoryBackingType_PHYSICAL
+	// doc.VirtualMachine.ComputeTopology.Memory.Backing = &memoryBacking
 	doc.SchemaVersion = schemaversion.SchemaV25()
 	doc.VirtualMachine.Version = &hcsschema.Version{
 		Major: 11,
@@ -539,6 +569,17 @@ func CreateWCOW(ctx context.Context, opts *OptionsWCOW) (_ *UtilityVM, err error
 	if err != nil {
 		return nil, fmt.Errorf("error in preparing config doc: %w", err)
 	}
+
+	jsonDoc, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("error while marshaling the compute system document: %w", err)
+	}
+	file, error := os.Create("C:\\uvm.json")
+	if error == nil {
+		file.Write(jsonDoc)
+		file.Close()
+	}
+	fmt.Printf("jsonDoc: %s\n", jsonDoc)
 
 	err = uvm.create(ctx, doc)
 	if err != nil {

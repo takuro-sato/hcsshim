@@ -353,6 +353,11 @@ const (
 	// number of memory blocks at slice index 1, etc.
 	// This should be used for explicit vNUMA topology.
 	NumaCountOfMemoryBlocks = "io.microsoft.virtualmachine.computetopology.numa.count-of-memory-blocks"
+
+	// Tmp hack
+	WCOWIsoloationType = "io.microsoft.virtualmachine.wcow.isolationtype"
+
+	WCOWDisableSecureBoot = "io.microsoft.virtualmachine.wcow.disable-secure-boot"
 )
 
 // AnnotationExpansions maps annotations that will be expanded into an array of

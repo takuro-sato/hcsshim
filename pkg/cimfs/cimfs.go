@@ -40,6 +40,10 @@ func IsVerifiedCimSupported() bool {
 	return build >= 27800
 }
 
+func GetOsVersion() uint16 {
+	return osversion.Build()
+}
+
 func IsMergedCimSupported() bool {
 	// The merged CIM support was originally added before block CIM support.  However,
 	// some of the merged CIM features that we use (e.g. merged hard links) were added

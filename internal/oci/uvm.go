@@ -363,6 +363,24 @@ func SpecToUVMCreateOpts(ctx context.Context, s *specs.Spec, id, owner string) (
 		wopts.NoDirectMap = ParseAnnotationsBool(ctx, s.Annotations, annotations.VSMBNoDirectMap, wopts.NoDirectMap)
 		wopts.NoInheritHostTimezone = ParseAnnotationsBool(ctx, s.Annotations, annotations.NoInheritHostTimezone, wopts.NoInheritHostTimezone)
 		wopts.AdditionalRegistryKeys = append(wopts.AdditionalRegistryKeys, parseAdditionalRegistryValues(ctx, s.Annotations)...)
+		isolationType := ParseAnnotationsString(s.Annotations, annotations.WCOWIsoloationType, "")
+
+		if isolationType != "" {
+			if isolationType == "SNP" {
+				wopts.IsolationType = "SecureNestedPaging"
+			} else if isolationType == "VBS" {
+				wopts.IsolationType = "VirtualizationBasedSecurity"
+			} else if isolationType == "GuestStateOnly"{
+				wopts.IsolationType = "GuestStateOnly"
+			} else {
+				return nil, fmt.Errorf("invalid WCOW isolation type %q", isolationType)
+			}
+		}
+
+		wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, s.Annotations, annotations.WCOWDisableSecureBoot, false)
+
+		fmt.Printf("DisableSecureBoot: %v, IsolationType: %v\n", wopts.DisableSecureBoot, wopts.IsolationType)
+		
 		handleAnnotationFullyPhysicallyBacked(ctx, s.Annotations, wopts)
 		if err := handleWCOWSecurityPolicy(ctx, s.Annotations, wopts); err != nil {
 			return nil, fmt.Errorf("failed to process WCOW security policy: %w", err)

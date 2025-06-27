@@ -74,6 +74,8 @@ func CreateComputeSystem(ctx context.Context, id string, hcsDocumentInterface in
 
 	hcsDocument := string(hcsDocumentB)
 
+	log.G(ctx).WithField("hcsDocumentInterface", hcsDocumentInterface).Debug("TAKURO_TEST: printing CreateComputeSystem")
+
 	var (
 		identity    syscall.Handle
 		resultJSON  string
@@ -90,7 +92,7 @@ func CreateComputeSystem(ctx context.Context, id string, hcsDocumentInterface in
 			// Terminate the compute system if it still exists. We're okay to
 			// ignore a failure here.
 			_ = computeSystem.Terminate(ctx)
-			return nil, makeSystemError(computeSystem, operation, err, nil)
+			return nil, makeSystemError(computeSystem, "hcs::CreateComputeSystem1", fmt.Errorf("TAKURO_TEST : 1: %s: %w", hcsDocument, err), nil)
 		}
 	}
 
@@ -102,7 +104,7 @@ func CreateComputeSystem(ctx context.Context, id string, hcsDocumentInterface in
 			// ignore a failure here.
 			_ = computeSystem.Terminate(ctx)
 		}
-		return nil, makeSystemError(computeSystem, operation, err, events)
+		return nil, makeSystemError(computeSystem, "hcs::CreateComputeSystem2", fmt.Errorf("TAKURO_TEST :2: hcsDocument:%s, resultJSON:%s, %w, createError: %w", hcsDocument, resultJSON, err, createError), events)
 	}
 	go computeSystem.waitBackground()
 	if err = computeSystem.getCachedProperties(ctx); err != nil {

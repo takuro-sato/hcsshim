@@ -9,6 +9,9 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"github.com/Microsoft/go-winio/pkg/guid"
+	"time"
+
 
 	"github.com/Microsoft/go-winio"
 	"github.com/Microsoft/hcsshim/internal/gcs/prot"
@@ -133,6 +136,8 @@ func main() {
 
 	flag.Parse()
 
+	sendToHelloListener("Hello from gcs-sidecar 1", 1)
+
 	ctx := context.Background()
 	logFileHandle, err := os.OpenFile(*logFile, os.O_RDWR|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0666)
 	if err != nil {
@@ -151,6 +156,8 @@ func main() {
 	trace.ApplyConfig(trace.Config{DefaultSampler: trace.AlwaysSample()})
 	trace.RegisterExporter(&oc.LogrusExporter{})
 
+	sendToHelloListener("Hello from gcs-sidecar 2", 1)
+
 	if err := windows.SetStdHandle(windows.STD_ERROR_HANDLE, windows.Handle(logFileHandle.Fd())); err != nil {
 		logrus.WithError(err).Error("error redirecting handle")
 		return
@@ -168,6 +175,8 @@ func main() {
 		chsrv <- err
 	}()
 
+	sendToHelloListener("Hello from gcs-sidecar 3", 1)
+
 	select {
 	case <-ctx.Done():
 		logrus.Error("context deadline exceeded")
@@ -179,6 +188,8 @@ func main() {
 		}
 	}
 
+	sendToHelloListener("Hello from gcs-sidecar 4", 1)
+
 	// 1. Start external server to connect with inbox GCS
 	listener, err := winio.ListenHvsock(&winio.HvsockAddr{
 		VMID:      prot.HvGUIDLoopback,
@@ -189,12 +200,16 @@ func main() {
 		return
 	}
 
+	sendToHelloListener("Hello from gcs-sidecar 5", 1)
+
 	var gcsListener net.Listener = listener
 	gcsCon, err := acceptAndClose(ctx, gcsListener)
 	if err != nil {
 		logrus.WithError(err).Errorf("error accepting inbox GCS connection")
 		return
 	}
+
+	sendToHelloListener("Hello from gcs-sidecar 6", 1)
 
 	// 2. Setup connection with external gcs connection started from hcsshim
 	hvsockAddr := &winio.HvsockAddr{
@@ -210,6 +225,8 @@ func main() {
 		logrus.WithError(err).Errorf("error dialing hcsshim external bridge")
 		return
 	}
+
+	sendToHelloListener("Hello from gcs-sidecar 7", 1)
 
 	// gcs-sidecar can be used for non-confidentail hyperv wcow
 	// as well. So we do not always want to check for initialPolicyStance
@@ -233,9 +250,59 @@ func main() {
 	brdg := sidecar.NewBridge(shimCon, gcsCon, initialEnforcer)
 	brdg.AssignHandlers()
 
+	sendToHelloListener("Hello from gcs-sidecar 8", 1)
+
 	// 3. Listen and serve for hcsshim requests.
 	err = brdg.ListenAndServeShimRequests()
 	if err != nil {
 		logrus.WithError(err).Errorf("failed to serve request")
+	}
+
+	sendToHelloListener("Hello from gcs-sidecar 9", 1)
+}
+
+// ----------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------------------------------------------------
+// Ken's made up GUID for hello
+// 65722b62-db94-4d5c-a656-ae70c9fc6233
+
+// WindowsHelloSidecarServiceID is the hvsock service ID that the hello world tool targets
+
+var WindowsHelloSidecarServiceID = guid.GUID{
+	Data1: 0x65722b62,
+	Data2: 0xdb94,
+	Data3: 0x4d5c,
+	Data4: [8]uint8{0xa6, 0x56, 0xae, 0x70, 0xc9, 0xfc, 0x62, 0x33},
+}
+
+func sendToHelloListener(message string, count int) {
+	hvsockAddr := &winio.HvsockAddr{
+		VMID:      prot.HvGUIDParent,
+		// ServiceID: prot.WindowsSidecarGcsHvsockServiceID,
+		ServiceID: WindowsHelloSidecarServiceID,
+	}
+
+	ctx := context.Background()
+
+	helloCon, err := winio.Dial(ctx, hvsockAddr)
+	if err != nil {
+		fmt.Printf("failed to dial hvsock: %s\n", err)
+		return
+	}
+	defer helloCon.Close()
+
+	for i := 0; i < count; i++ {
+		_, err = helloCon.Write([]byte(message))
+		if err != nil {
+			fmt.Printf("failed to write to socket: %s\n", err)
+			return
+		}
+		if (i < count - 1) {
+			time.Sleep(1 * time.Second)
+		}
 	}
 }

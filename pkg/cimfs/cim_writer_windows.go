@@ -67,7 +67,7 @@ func Create(imagePath string, oldFSName string, newFSName string) (_ *CimFsWrite
 // returned can then be used to add/remove files to/from this CIM.
 func CreateBlockCIM(blockPath, name string, blockType BlockCIMType) (_ *CimFsWriter, err error) {
 	if !IsBlockCimSupported() {
-		return nil, fmt.Errorf("block CIM not supported on this OS version")
+		return nil, fmt.Errorf("block CIM not supported on this OS version: current: %d, should be newer or equal to 27766", GetOsVersion())
 	}
 	if blockPath == "" || name == "" {
 		return nil, fmt.Errorf("both blockPath & name must be non empty: %w", os.ErrInvalid)

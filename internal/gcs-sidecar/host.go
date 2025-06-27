@@ -76,7 +76,7 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 		maxErrorMessageLength,
 	)
 	if err != nil {
-		return fmt.Errorf("error creating security policy enforcer: %w", err)
+		return fmt.Errorf("error creating security policy enforcer (test: using rego again): %w", err)
 	}
 
 	h.securityPolicyEnforcer = p

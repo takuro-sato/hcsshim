@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"github.com/Microsoft/go-winio/pkg/guid"
 	"time"
 
@@ -137,6 +138,21 @@ func main() {
 	flag.Parse()
 
 	sendToHelloListener("Hello from gcs-sidecar 1", 1)
+
+	// Print Windows version information with sendToHelloListener()
+	// reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion" /v BuildLabEx
+
+	cmd := exec.Command("reg", "query", "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion", "/v", "BuildLabEx")
+	output, err := cmd.Output()
+	if err != nil {
+		message := fmt.Sprintf("Error retrieving Windows version information: %v\n", err)
+		fmt.Println(message)
+		sendToHelloListener(message, 1)
+	} else {
+		message := fmt.Sprintf("Windows Version Information: %s", output)
+		fmt.Println(message)
+		sendToHelloListener(message, 1)
+	}
 
 	ctx := context.Background()
 	logFileHandle, err := os.OpenFile(*logFile, os.O_RDWR|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0666)

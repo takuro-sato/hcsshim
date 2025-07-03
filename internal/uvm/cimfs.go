@@ -47,7 +47,7 @@ func (uvm *UtilityVM) MountBlockCIMs(ctx context.Context, mergedCIM *cimfs.Block
 	settings := &guestresource.WCOWBlockCIMMounts{
 		BlockCIMs:   []guestresource.BlockCIMDevice{},
 		VolumeGuid:  volumeGUID,
-		MountFlags:  cimfs.CimMountBlockDeviceCim,
+		MountFlags:  cimfs.CimMountVerifiedCim,
 		ContainerID: containerID,
 	}
 

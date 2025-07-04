@@ -377,7 +377,8 @@ func SpecToUVMCreateOpts(ctx context.Context, s *specs.Spec, id, owner string) (
 			}
 		}
 
-		wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, s.Annotations, annotations.WCOWDisableSecureBoot, false)
+		// TODO: check the default back to false.
+		wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, s.Annotations, annotations.WCOWDisableSecureBoot, true)
 
 		fmt.Printf("DisableSecureBoot: %v, IsolationType: %v\n", wopts.DisableSecureBoot, wopts.IsolationType)
 		

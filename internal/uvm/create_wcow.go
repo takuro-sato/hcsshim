@@ -214,6 +214,23 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 
 	registryChanges.AddValues = append(registryChanges.AddValues, opts.AdditionalRegistryKeys...)
 
+	// enlightenmentSet := &hcsschema.EnlightenmentSet{
+	// 	SyntheticProcessorFeatures: []string{"HypervisorPresent", "Hv1", "AccessVpRunTimeReg", "AccessPartitionReferenceCounter", "AccessSynicRegs", "AccessSyntheticTimerRegs", "AccessIntrCtrlRegs", "AccessHypercallRegs", "AccessVpIndex", "AccessPartitionReferenceTsc", "AccessGuestIdleReg", "AccessFrequencyRegs", "EnableExtendedGvaRangesForFlushVirtualAddressList", "StartVirtualProcessor", "DirectSyntheticTimers", "ExtendedProcessorMasks", "TbFlushHypercalls", "SyntheticClusterIpi", "NotifyLongSpinWait", "QueryNumaDistance", "SignalEvents", "RetargetDeviceInterrupt", "RestoreTime", "EnlightenedVmcs", "NestedDebugCtl", "SyntheticTimeUnhaltedTimer", "IdleSpecCtrl", "WakeVps", "AccessVpRegs", "ManagementVtlSynicSupport", "ProxyInterruptDoorbellSupport", "MmioHypercalls", "MapPartitionEventLogBuffer", "Vtl0GuestRequestSupport"},
+	// 	ProcessorFeatureSetMode: "Permissive",
+	// }
+
+	// enlightenmentSet := &hcsschema.EnlightenmentSet{
+	// 	SyntheticProcessorFeatures: []string{"HypervisorPresent", "Hv1", "AccessVpRunTimeReg", "AccessPartitionReferenceCounter", "AccessSynicRegs", "AccessSyntheticTimerRegs", "AccessIntrCtrlRegs", "AccessHypercallRegs", "AccessVpIndex", "AccessPartitionReferenceTsc", "AccessGuestIdleReg", "AccessFrequencyRegs", "EnableExtendedGvaRangesForFlushVirtualAddressList", "StartVirtualProcessor", "DirectSyntheticTimers", "ExtendedProcessorMasks", "TbFlushHypercalls", "SyntheticClusterIpi", "NotifyLongSpinWait", "QueryNumaDistance", "SignalEvents", "RetargetDeviceInterrupt", "RestoreTime", "EnlightenedVmcs", "NestedDebugCtl", "SyntheticTimeUnhaltedTimer", "IdleSpecCtrl", "WakeVps", "AccessVpRegs", "ManagementVtlSynicSupport", "ProxyInterruptDoorbellSupport", "MmioHypercalls", "MapPartitionEventLogBuffer"},
+	// 	ProcessorFeatureSetMode: "Permissive",
+	// }
+
+	// processor := &hcsschema.VirtualMachineProcessor{
+	// 	Count:  uint32(uvm.processorCount),
+	// 	Limit:  uint64(opts.ProcessorLimit),
+	// 	Weight: uint64(opts.ProcessorWeight),
+	// 	EnlightenmentSet: enlightenmentSet,
+	// }
+
 	processor := &hcsschema.VirtualMachineProcessor{
 		Count:  uint32(uvm.processorCount),
 		Limit:  uint64(opts.ProcessorLimit),
@@ -423,8 +440,8 @@ func prepareSecurityConfigDoc(ctx context.Context, uvm *UtilityVM, opts *Options
 	// doc.VirtualMachine.ComputeTopology.Memory.Backing = &memoryBacking
 	doc.SchemaVersion = schemaversion.SchemaV25()
 	doc.VirtualMachine.Version = &hcsschema.Version{
-		Major: 11,
-		Minor: 0,
+		Major: 12,
+		Minor: 2,
 	}
 
 	if err := wclayer.GrantVmAccess(ctx, uvm.id, opts.BootFiles.BlockCIMFiles.BootCIMVHDPath); err != nil {

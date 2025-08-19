@@ -18,4 +18,5 @@ type VirtualMachineProcessor struct {
 	Reservation uint64 `json:"Reservation,omitempty"`
 	CpuGroup                   *CpuGroup            `json:"CpuGroup,omitempty"`
 	NumaProcessorsSettings     *NumaProcessors      `json:"NumaProcessorsSettings,omitempty"`
+	EnlightenmentSet           *EnlightenmentSet    `json:"EnlightenmentSet,omitempty"`
 }

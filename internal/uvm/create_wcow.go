@@ -340,7 +340,7 @@ func prepareSecurityConfigDoc(ctx context.Context, uvm *UtilityVM, opts *Options
 		}
 	}
 
-	opts.IsolationType != "SecureNestedPaging" {
+	if opts.IsolationType != "SecureNestedPaging" {
 		// With these options SNP UVM doesn't boot.
 		memoryBacking := hcsschema.MemoryBackingType_PHYSICAL
 		doc.VirtualMachine.ComputeTopology.Memory.Backing = &memoryBacking

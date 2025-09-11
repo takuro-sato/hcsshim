@@ -197,6 +197,7 @@ func handleWCOWSecurityPolicy(ctx context.Context, a map[string]string, wopts *u
 	// allow actual isolated boot etc to be ignored if we have no hardware. Required for dev
 	// this is not a security issue as the attestation will fail without a genuine report
 	noSecurityHardware := ParseAnnotationsBool(ctx, a, annotations.NoSecurityHardware, false)
+	log.G(ctx).Tracef("TAKURO_TEST: noSevurityHardware: %v", noSecurityHardware)
 
 	// TODO: Process annotations.NoSecurityHardware here for cwcow cases!
 	if len(wopts.SecurityPolicy) > 0 {
@@ -370,7 +371,7 @@ func SpecToUVMCreateOpts(ctx context.Context, s *specs.Spec, id, owner string) (
 				wopts.IsolationType = "SecureNestedPaging"
 			} else if isolationType == "VBS" {
 				wopts.IsolationType = "VirtualizationBasedSecurity"
-			} else if isolationType == "GuestStateOnly"{
+			} else if isolationType == "GuestStateOnly" {
 				wopts.IsolationType = "GuestStateOnly"
 			} else {
 				return nil, fmt.Errorf("invalid WCOW isolation type %q", isolationType)
@@ -381,7 +382,7 @@ func SpecToUVMCreateOpts(ctx context.Context, s *specs.Spec, id, owner string) (
 		wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, s.Annotations, annotations.WCOWDisableSecureBoot, true)
 
 		fmt.Printf("DisableSecureBoot: %v, IsolationType: %v\n", wopts.DisableSecureBoot, wopts.IsolationType)
-		
+
 		handleAnnotationFullyPhysicallyBacked(ctx, s.Annotations, wopts)
 		if err := handleWCOWSecurityPolicy(ctx, s.Annotations, wopts); err != nil {
 			return nil, fmt.Errorf("failed to process WCOW security policy: %w", err)

@@ -4,11 +4,11 @@ package uvm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
 	"path/filepath"
-	"encoding/json"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/Microsoft/go-winio/pkg/guid"
@@ -120,10 +120,10 @@ func SetDefaultConfidentialWCOWBootConfig(opts *OptionsWCOW) error {
 	}
 
 	//TODO(ambarve): for testing only remove later
-	
+
 	// opts.DisableSecureBoot = true // Use false if possible for demo. Maybe it's necessary. There is a HCL code to check it to be false.
 	opts.ConsolePipe = "\\\\.\\pipe\\uvmpipe"
-	opts.NoSecurityHardware = true
+	// opts.NoSecurityHardware = true
 	return nil
 }
 
@@ -272,7 +272,7 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 			RegistryChanges: &registryChanges,
 			ComputeTopology: &hcsschema.Topology{
 				Memory: &hcsschema.VirtualMachineMemory{
-					SizeInMB:        memorySizeInMB,
+					SizeInMB: memorySizeInMB,
 					// AllowOvercommit: opts.AllowOvercommit,
 					// EnableHotHint is not compatible with physical.
 					// EnableHotHint:        opts.AllowOvercommit,
@@ -323,9 +323,9 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 	// }
 
 	opts.AdditionalHyperVConfig["65722b62-db94-4d5c-a656-ae70c9fc6233"] = hcsschema.HvSocketServiceConfig{
-		BindSecurityDescriptor: "D:P(A;;FA;;;WD)",
-		ConnectSecurityDescriptor : "D:P(A;;FA;;;SY)(A;;FA;;;BA)",
-		AllowWildcardBinds : true,
+		BindSecurityDescriptor:    "D:P(A;;FA;;;WD)",
+		ConnectSecurityDescriptor: "D:P(A;;FA;;;SY)(A;;FA;;;BA)",
+		AllowWildcardBinds:        true,
 	}
 
 	maps.Copy(doc.VirtualMachine.Devices.HvSocket.HvSocketConfig.ServiceTable, opts.AdditionalHyperVConfig)

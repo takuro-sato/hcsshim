@@ -10,14 +10,15 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"github.com/Microsoft/go-winio/pkg/guid"
 	"time"
 
+	"github.com/Microsoft/go-winio/pkg/guid"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/Microsoft/hcsshim/internal/gcs/prot"
 	shimlog "github.com/Microsoft/hcsshim/internal/log"
 	"github.com/Microsoft/hcsshim/internal/oc"
+	"github.com/Microsoft/hcsshim/internal/pspdriver"
 	"github.com/Microsoft/hcsshim/pkg/securitypolicy"
 	"github.com/sirupsen/logrus"
 	"go.opencensus.io/trace"
@@ -206,6 +207,24 @@ func main() {
 
 	sendToHelloListener("Hello from gcs-sidecar 4", 1)
 
+	logrus.Tracef("Starting psp driver")
+	var snpMode = false
+	if err := pspdriver.StartPSPDriver(ctx); err != nil {
+		// When error happens, pspdriver.IsPSPDriverStarted() returns false.
+		// It will be used so that gcs-sidecar return `deny` for any request.
+		logrus.WithError(err).Errorf("failed to start PSP driver")
+	} else {
+		snpMode, err = pspdriver.IsSNPMode(ctx)
+		if err != nil {
+			logrus.WithError(err).Errorf("failed to check SNP mode: %v", err)
+		}
+		if snpMode {
+			logrus.Tracef("It's in SNP mode")
+		} else {
+			logrus.Tracef("It's NOT in SNP mode")
+		}
+	}
+
 	// 1. Start external server to connect with inbox GCS
 	listener, err := winio.ListenHvsock(&winio.HvsockAddr{
 		VMID:      prot.HvGUIDLoopback,
@@ -247,10 +266,14 @@ func main() {
 	// gcs-sidecar can be used for non-confidentail hyperv wcow
 	// as well. So we do not always want to check for initialPolicyStance
 	var initialEnforcer securitypolicy.SecurityPolicyEnforcer
-	// TODO (kiashok/Mahati): The initialPolicyStance is set to allow
-	// only for dev. This will eventually be set to allow/deny depending on
-	// on whether SNP is supported or not.
 	initialPolicyStance := "allow"
+	if pspdriver.GetPspDriverError() != nil || snpMode {
+		// If the driver failed to start, policy should keep returning "deny" for anything.
+		// For SNP environment, the default is "deny" but policy will be updated
+		// per the user's security policy.
+		initialPolicyStance = "deny"
+	}
+
 	switch initialPolicyStance {
 	case "allow":
 		initialEnforcer = &securitypolicy.OpenDoorSecurityPolicyEnforcer{}
@@ -297,7 +320,7 @@ var WindowsHelloSidecarServiceID = guid.GUID{
 
 func sendToHelloListener(message string, count int) {
 	hvsockAddr := &winio.HvsockAddr{
-		VMID:      prot.HvGUIDParent,
+		VMID: prot.HvGUIDParent,
 		// ServiceID: prot.WindowsSidecarGcsHvsockServiceID,
 		ServiceID: WindowsHelloSidecarServiceID,
 	}
@@ -317,7 +340,7 @@ func sendToHelloListener(message string, count int) {
 			fmt.Printf("failed to write to socket: %s\n", err)
 			return
 		}
-		if (i < count - 1) {
+		if i < count-1 {
 			time.Sleep(1 * time.Second)
 		}
 	}

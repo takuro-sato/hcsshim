@@ -131,15 +131,15 @@ type SecurityPolicyEnforcer interface {
 	GetUserInfo(containerID string, spec *oci.Process) (IDName, []IDName, string, error)
 }
 
-//nolint
+// nolint
 type stringSet map[string]struct{}
 
-//nolint
+// nolint
 func (s stringSet) add(item string) {
 	s[item] = struct{}{}
 }
 
-//nolint
+// nolint
 func (s stringSet) contains(item string) bool {
 	_, contains := s[item]
 	return contains
@@ -1072,31 +1072,60 @@ func (OpenDoorSecurityPolicyEnforcer) GetUserInfo(containerID string, spec *oci.
 
 type ClosedDoorSecurityPolicyEnforcer struct {
 	encodedSecurityPolicy string //nolint:unused
+	reason                string
 }
 
 var _ SecurityPolicyEnforcer = (*ClosedDoorSecurityPolicyEnforcer)(nil)
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceDeviceMountPolicy(context.Context, string, string) error {
-	return errors.New("mounting is denied by policy")
+// TODO (takuro-sato) : Do I need to use it for every instance to follow go convention?
+func NewClosedDoorSecurityPolicyEnforcer(reason string) *ClosedDoorSecurityPolicyEnforcer {
+	return &ClosedDoorSecurityPolicyEnforcer{
+		encodedSecurityPolicy: "",
+		reason:                reason,
+	}
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceDeviceUnmountPolicy(context.Context, string) error {
-	return errors.New("unmounting is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceDeviceMountPolicy(context.Context, string, string) error {
+	msg := "mounting is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceOverlayMountPolicy(context.Context, string, []string, string) error {
-	return errors.New("creating an overlay fs is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceDeviceUnmountPolicy(context.Context, string) error {
+	msg := "unmounting is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceOverlayUnmountPolicy(context.Context, string) error {
-	return errors.New("removing an overlay fs is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceOverlayMountPolicy(context.Context, string, []string, string) error {
+	msg := "creating an overlay fs is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceCreateContainerPolicy(context.Context, string, string, []string, []string, string, []oci.Mount, bool, bool, IDName, []IDName, string, *oci.LinuxCapabilities, string) (EnvList, *oci.LinuxCapabilities, bool, error) {
-	return nil, nil, false, errors.New("running commands is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceOverlayUnmountPolicy(context.Context, string) error {
+	msg := "removing an overlay fs is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceCreateContainerPolicyV2(
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceCreateContainerPolicy(context.Context, string, string, []string, []string, string, []oci.Mount, bool, bool, IDName, []IDName, string, *oci.LinuxCapabilities, string) (EnvList, *oci.LinuxCapabilities, bool, error) {
+	msg := "running commands is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return nil, nil, false, errors.New(msg)
+}
+
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceCreateContainerPolicyV2(
 	ctx context.Context,
 	containerID string,
 	argList []string,
@@ -1106,14 +1135,22 @@ func (ClosedDoorSecurityPolicyEnforcer) EnforceCreateContainerPolicyV2(
 	user IDName,
 	opts *CreateContainerOptions,
 ) (EnvList, *oci.LinuxCapabilities, bool, error) {
-	return nil, nil, false, errors.New("running commands is denied by policy")
+	msg := "running commands is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return nil, nil, false, errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceExecInContainerPolicy(context.Context, string, []string, []string, string, bool, IDName, []IDName, string, *oci.LinuxCapabilities) (EnvList, *oci.LinuxCapabilities, bool, error) {
-	return nil, nil, false, errors.New("starting additional processes in a container is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceExecInContainerPolicy(context.Context, string, []string, []string, string, bool, IDName, []IDName, string, *oci.LinuxCapabilities) (EnvList, *oci.LinuxCapabilities, bool, error) {
+	msg := "starting additional processes in a container is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return nil, nil, false, errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceExecInContainerPolicyV2(
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceExecInContainerPolicyV2(
 	ctx context.Context,
 	containerID string,
 	argList []string,
@@ -1121,63 +1158,115 @@ func (ClosedDoorSecurityPolicyEnforcer) EnforceExecInContainerPolicyV2(
 	workingDir string,
 	opts *ExecOptions,
 ) (EnvList, *oci.LinuxCapabilities, bool, error) {
-	return nil, nil, false, errors.New("starting additional processes in a container is denied by policy")
+	msg := "starting additional processes in a container is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return nil, nil, false, errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceExecExternalProcessPolicy(context.Context, []string, []string, string) (EnvList, bool, error) {
-	return nil, false, errors.New("starting additional processes in uvm is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceExecExternalProcessPolicy(context.Context, []string, []string, string) (EnvList, bool, error) {
+	msg := "starting additional processes in uvm is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return nil, false, errors.New(msg)
 }
 
-func (*ClosedDoorSecurityPolicyEnforcer) EnforceShutdownContainerPolicy(context.Context, string) error {
-	return errors.New("shutting down containers is denied by policy")
+func (c *ClosedDoorSecurityPolicyEnforcer) EnforceShutdownContainerPolicy(context.Context, string) error {
+	msg := "shutting down containers is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (*ClosedDoorSecurityPolicyEnforcer) EnforceSignalContainerProcessPolicy(context.Context, string, syscall.Signal, bool, []string) error {
-	return errors.New("signalling container processes is denied by policy")
+func (c *ClosedDoorSecurityPolicyEnforcer) EnforceSignalContainerProcessPolicy(context.Context, string, syscall.Signal, bool, []string) error {
+	msg := "signalling container processes is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (*ClosedDoorSecurityPolicyEnforcer) EnforceSignalContainerProcessPolicyV2(ctx context.Context, containerID string, opts *SignalContainerOptions) error {
-	return errors.New("signalling container processes is denied by policy")
+func (c *ClosedDoorSecurityPolicyEnforcer) EnforceSignalContainerProcessPolicyV2(ctx context.Context, containerID string, opts *SignalContainerOptions) error {
+	msg := "signalling container processes is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (*ClosedDoorSecurityPolicyEnforcer) EnforcePlan9MountPolicy(context.Context, string) error {
-	return errors.New("mounting is denied by policy")
+func (c *ClosedDoorSecurityPolicyEnforcer) EnforcePlan9MountPolicy(context.Context, string) error {
+	msg := "mounting is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (*ClosedDoorSecurityPolicyEnforcer) EnforcePlan9UnmountPolicy(context.Context, string) error {
-	return errors.New("unmounting is denied by policy")
+func (c *ClosedDoorSecurityPolicyEnforcer) EnforcePlan9UnmountPolicy(context.Context, string) error {
+	msg := "unmounting is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceGetPropertiesPolicy(context.Context) error {
-	return errors.New("getting container properties is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceGetPropertiesPolicy(context.Context) error {
+	msg := "getting container properties is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceDumpStacksPolicy(context.Context) error {
-	return errors.New("getting stack dumps is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceDumpStacksPolicy(context.Context) error {
+	msg := "getting stack dumps is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) LoadFragment(context.Context, string, string, string) error {
-	return errors.New("loading fragments is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) LoadFragment(context.Context, string, string, string) error {
+	msg := "loading fragments is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
 func (ClosedDoorSecurityPolicyEnforcer) ExtendDefaultMounts(_ []oci.Mount) error {
 	return nil
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceRuntimeLoggingPolicy(context.Context) error {
-	return errors.New("runtime logging is denied by policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceRuntimeLoggingPolicy(context.Context) error {
+	msg := "runtime logging is denied by policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EncodedSecurityPolicy() string {
-	return ""
+func (c ClosedDoorSecurityPolicyEnforcer) EncodedSecurityPolicy() string {
+	return c.encodedSecurityPolicy
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceScratchMountPolicy(context.Context, string, bool) error {
-	return errors.New("mounting scratch is denied by the policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceScratchMountPolicy(context.Context, string, bool) error {
+	msg := "mounting scratch is denied by the policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
-func (ClosedDoorSecurityPolicyEnforcer) EnforceScratchUnmountPolicy(context.Context, string) error {
-	return errors.New("unmounting scratch is denied by the policy")
+func (c ClosedDoorSecurityPolicyEnforcer) EnforceScratchUnmountPolicy(context.Context, string) error {
+	msg := "unmounting scratch is denied by the policy"
+	if c.reason != "" {
+		msg += ". reason: " + c.reason
+	}
+	return errors.New(msg)
 }
 
 func (ClosedDoorSecurityPolicyEnforcer) EnforceVerifiedCIMsPolicy(ctx context.Context, containerID string, layerHashes []string) error {

@@ -723,10 +723,13 @@ func (b *Bridge) modifySettings(req *request) (err error) {
 			// TODO: modify gcs-sidecar code to pass context across all calls
 			// TODO: Update modifyCombinedLayers with verified CimFS API
 			if b.hostState.isSecurityPolicyEnforcerInitialized() {
+				log.G(ctx).Tracef("isSecurityPolicyEnforcerInitialized true")
 				policy_err := modifyCombinedLayers(ctx, containerID, guestRequestType, settings.CombinedLayers, b.hostState.securityPolicyEnforcer)
 				if policy_err != nil {
 					return errors.Wrapf(policy_err, "CimFS layer mount is denied by policy: %v", settings)
 				}
+			} else {
+				log.G(ctx).Tracef("isSecurityPolicyEnforcerInitialized false")
 			}
 
 			// TODO: Update modifyCombinedLayers with verified CimFS API

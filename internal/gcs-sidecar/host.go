@@ -144,19 +144,37 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 		return errors.New("security policy has already been set")
 	}
 
-	if securityPolicyRequest.NoSecurityHardware || pspdriver.IsSNPEnabled(ctx) {
-		log.G(ctx).Tracef("Starting psp driver")
-		// Start the psp driver
-		if err := pspdriver.StartPSPDriver(ctx); err != nil {
-			// Failed to start psp driver, return prematurely
-			return errors.Wrapf(err, "failed to start PSP driver")
-		}
-	} else {
-		// failed to load PSP driver, error out
-		// TODO (kiashok): Following log can be cleaned up once the caller stops ignoring failure
-		// due to "rego" error.
-		log.G(ctx).Fatal("failed to load PSP driver: no hardware support or annotation specified")
-		return fmt.Errorf("failed to load PSP driver: no hardware support or annotation specified")
+	// ------> TODO: remove
+	// log.G(ctx).Tracef("Starting psp driver")
+	// // Failure should cause the UVM to stop.
+	// // Current implementation does that because it's part of
+	// // `func (uvm *UtilityVM) Start(ctx context.Context)` in hcsshim.
+	// if err := pspdriver.StartPSPDriver(ctx); err != nil {
+	// 	// TODO: for error
+	// 	return errors.New(fmt.Sprintf("failed to start PSP driver: %v", err))
+	// }
+
+	// snpMode, err := pspdriver.IsSNPMode(ctx)
+	// if err != nil {
+	// 	return errors.New(fmt.Sprintf("failed to check SNP mode: %v", err))
+	// }
+	// <--------
+
+	log.G(ctx).Tracef("TAKRUO_TEST: pspdriver.GetPspDriverError() %v, securityPolicyRequest.NoSecurityHardware %v", pspdriver.GetPspDriverError(), securityPolicyRequest.NoSecurityHardware)
+	// TODO: Do I need to implement NoSecurityHardware against main branch?
+	if pspdriver.GetPspDriverError() != nil {
+		log.G(ctx).Tracef("There was a PSP driver related error: %v", pspdriver.GetPspDriverError())
+		// For this case we need to keep gcs-sidecar alive and let it return `deny` for any request.
+		// So we don't return error here.
+
+		// h.securityPolicyEnforcer already has "deny" policy. So if we are happy to
+		// be implicit, we can remove it.
+		// This will cause `crictl.exe start` to fail with "creating an overlay fs is denied by policy."
+		h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
+			fmt.Sprintf("occured error while using PSP driver: %v", pspdriver.GetPspDriverError()))
+
+		h.securityPolicyEnforcerSet = true
+		return nil
 	}
 
 	// This limit ensures messages are below the character truncation limit that

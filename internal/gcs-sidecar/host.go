@@ -203,7 +203,7 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	}
 
 	// Fetch report and validate host_data
-	// LCOW version is in `func (h *Host) SetConfidentialUVMOptions` of internal\guest\runtime\hcsv2\uvm.go
+	// TODO: Refactor. LCOW version is in `func (h *Host) SetConfidentialUVMOptions` of internal\guest\runtime\hcsv2\uvm.go
 
 	hostData, err := securitypolicy.NewSecurityPolicyDigest(securityPolicyRequest.EncodedSecurityPolicy)
 	if err != nil {
@@ -213,16 +213,19 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	if err := pspdriver.ValidateHostData(ctx, hostData[:]); err != nil {
 		// Similaryly to above PSP driver error case,
 		// we keep gcs-sidecar alive and let it return `deny` for any request.
-		h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
-			fmt.Sprintf("HostData validation failed: %v", err))
-		h.securityPolicyEnforcerSet = true
-		return nil
+		// h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
+		// 	fmt.Sprintf("HostData validation failed: %v", err))
+		// h.securityPolicyEnforcerSet = true
+		// return nil
 		// If we just return error here, gcs-sidecar will exit.
-		// return err
+		// TODO: assert(current policy is deny)
+		return err
 	}
 
 	h.securityPolicyEnforcer = p
 	h.securityPolicyEnforcerSet = true
+	// TODO:
+	// h.uvmReferenceInfo = securityPolicyRequest.UVMReferenceInfo
 
 	return nil
 }

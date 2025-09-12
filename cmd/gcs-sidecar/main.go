@@ -274,6 +274,7 @@ func main() {
 		initialPolicyStance = "deny"
 	}
 
+	// TODO_NOW: always it should be deny
 	switch initialPolicyStance {
 	case "allow":
 		initialEnforcer = &securitypolicy.OpenDoorSecurityPolicyEnforcer{}

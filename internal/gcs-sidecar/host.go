@@ -164,8 +164,7 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	// TODO: Do I need to implement NoSecurityHardware against main branch?
 	if pspdriver.GetPspDriverError() != nil {
 		log.G(ctx).Tracef("There was a PSP driver related error: %v", pspdriver.GetPspDriverError())
-		// For this case we need to keep gcs-sidecar alive and let it return `deny` for any request.
-		// So we don't return error here.
+		// For this case we keep gcs-sidecar alive and let it return `deny` for any request.
 
 		// h.securityPolicyEnforcer already has "deny" policy. So if we are happy to
 		// be implicit, we can remove it.
@@ -212,12 +211,14 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	}
 
 	if err := pspdriver.ValidateHostData(ctx, hostData[:]); err != nil {
-		// TODO: If I need to do the following instead of returning error for host_data mismatch.
-		// h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
-		// 	fmt.Sprintf("HostData validation failed: %v", err))
-		// h.securityPolicyEnforcerSet = true
-		// return nil
-		return err
+		// Similaryly to above PSP driver error case,
+		// we keep gcs-sidecar alive and let it return `deny` for any request.
+		h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
+			fmt.Sprintf("HostData validation failed: %v", err))
+		h.securityPolicyEnforcerSet = true
+		return nil
+		// If we just return error here, gcs-sidecar will exit.
+		// return err
 	}
 
 	h.securityPolicyEnforcer = p

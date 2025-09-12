@@ -199,6 +199,24 @@ func handleWCOWSecurityPolicy(ctx context.Context, a map[string]string, wopts *u
 	noSecurityHardware := ParseAnnotationsBool(ctx, a, annotations.NoSecurityHardware, false)
 	log.G(ctx).Tracef("TAKURO_TEST: noSevurityHardware: %v", noSecurityHardware)
 
+	isolationType := ParseAnnotationsString(a, annotations.WCOWIsoloationType, "")
+
+	if isolationType != "" {
+		switch isolationType {
+		case "SecureNestedPaging", "SNP":
+			wopts.IsolationType = "SecureNestedPaging"
+		case "VirtualizationBasedSecurity", "VBS":
+			wopts.IsolationType = "VirtualizationBasedSecurity"
+		case "GuestStateOnly":
+			wopts.IsolationType = "GuestStateOnly"
+		default:
+			return fmt.Errorf("invalid WCOW isolation type %q", isolationType)
+		}
+	}
+
+	// TODO: check the default back to false.
+	wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, a, annotations.WCOWDisableSecureBoot, true)
+
 	// TODO: Process annotations.NoSecurityHardware here for cwcow cases!
 	if len(wopts.SecurityPolicy) > 0 {
 		wopts.SecurityPolicyEnabled = true
@@ -364,22 +382,6 @@ func SpecToUVMCreateOpts(ctx context.Context, s *specs.Spec, id, owner string) (
 		wopts.NoDirectMap = ParseAnnotationsBool(ctx, s.Annotations, annotations.VSMBNoDirectMap, wopts.NoDirectMap)
 		wopts.NoInheritHostTimezone = ParseAnnotationsBool(ctx, s.Annotations, annotations.NoInheritHostTimezone, wopts.NoInheritHostTimezone)
 		wopts.AdditionalRegistryKeys = append(wopts.AdditionalRegistryKeys, parseAdditionalRegistryValues(ctx, s.Annotations)...)
-		isolationType := ParseAnnotationsString(s.Annotations, annotations.WCOWIsoloationType, "")
-
-		if isolationType != "" {
-			if isolationType == "SNP" {
-				wopts.IsolationType = "SecureNestedPaging"
-			} else if isolationType == "VBS" {
-				wopts.IsolationType = "VirtualizationBasedSecurity"
-			} else if isolationType == "GuestStateOnly" {
-				wopts.IsolationType = "GuestStateOnly"
-			} else {
-				return nil, fmt.Errorf("invalid WCOW isolation type %q", isolationType)
-			}
-		}
-
-		// TODO: check the default back to false.
-		wopts.DisableSecureBoot = ParseAnnotationsBool(ctx, s.Annotations, annotations.WCOWDisableSecureBoot, true)
 
 		fmt.Printf("DisableSecureBoot: %v, IsolationType: %v\n", wopts.DisableSecureBoot, wopts.IsolationType)
 

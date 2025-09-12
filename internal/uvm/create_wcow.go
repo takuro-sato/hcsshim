@@ -4,6 +4,7 @@ package uvm
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -29,6 +30,7 @@ import (
 	"github.com/Microsoft/hcsshim/internal/uvm/scsi"
 	"github.com/Microsoft/hcsshim/internal/wclayer"
 	"github.com/Microsoft/hcsshim/osversion"
+	"github.com/Microsoft/hcsshim/pkg/securitypolicy"
 )
 
 type ConfidentialWCOWOptions struct {
@@ -413,11 +415,21 @@ func prepareSecurityConfigDoc(ctx context.Context, uvm *UtilityVM, opts *Options
 	}
 
 	enableHCL := true
+
+	policyDigest, err := securitypolicy.NewSecurityPolicyDigest(opts.SecurityPolicy)
+	if err != nil {
+		return nil, err
+	}
+	hostData := base64.StdEncoding.EncodeToString(policyDigest)
+
+	log.G(ctx).Tracef("TAKURO_TEST: hostData: %v", hostData)
+
 	doc.VirtualMachine.SecuritySettings = &hcsschema.SecuritySettings{
 		EnableTpm: false,
 		Isolation: &hcsschema.IsolationSettings{
 			IsolationType: "SecureNestedPaging",
 			HclEnabled:    &enableHCL,
+			LaunchData:    hostData,
 		},
 	}
 

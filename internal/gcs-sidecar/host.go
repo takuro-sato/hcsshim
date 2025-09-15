@@ -160,20 +160,9 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	// }
 	// <--------
 
-	log.G(ctx).Tracef("TAKRUO_TEST: pspdriver.GetPspDriverError() %v, securityPolicyRequest.NoSecurityHardware %v", pspdriver.GetPspDriverError(), securityPolicyRequest.NoSecurityHardware)
-	// TODO: Do I need to implement NoSecurityHardware against main branch?
 	if pspdriver.GetPspDriverError() != nil {
-		log.G(ctx).Tracef("There was a PSP driver related error: %v", pspdriver.GetPspDriverError())
-		// For this case we keep gcs-sidecar alive and let it return `deny` for any request.
-
-		// h.securityPolicyEnforcer already has "deny" policy. So if we are happy to
-		// be implicit, we can remove it.
-		// This will cause `crictl.exe start` to fail with "creating an overlay fs is denied by policy."
-		h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
-			fmt.Sprintf("occured error while using PSP driver: %v", pspdriver.GetPspDriverError()))
-
-		h.securityPolicyEnforcerSet = true
-		return nil
+		// For this case gcs-sidecar will keep initial deny policy.
+		return errors.Errorf("occured error while using PSP driver: %v", pspdriver.GetPspDriverError())
 	}
 
 	// This limit ensures messages are below the character truncation limit that
@@ -211,14 +200,7 @@ func (h *Host) SetWCOWConfidentialUVMOptions(ctx context.Context, securityPolicy
 	}
 
 	if err := pspdriver.ValidateHostData(ctx, hostData[:]); err != nil {
-		// Similaryly to above PSP driver error case,
-		// we keep gcs-sidecar alive and let it return `deny` for any request.
-		// h.securityPolicyEnforcer = securitypolicy.NewClosedDoorSecurityPolicyEnforcer(
-		// 	fmt.Sprintf("HostData validation failed: %v", err))
-		// h.securityPolicyEnforcerSet = true
-		// return nil
-		// If we just return error here, gcs-sidecar will exit.
-		// TODO: assert(current policy is deny)
+		// For this case gcs-sidecar will keep initial deny policy.
 		return err
 	}
 

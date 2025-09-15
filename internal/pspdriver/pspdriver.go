@@ -6,6 +6,8 @@ package pspdriver
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -19,10 +21,7 @@ import (
 )
 
 const (
-	serviceName            = "AmdSnpPsp"
-	snpFirmwareEnvVariable = "SnpGuestReport"
-	privilegeName          = "SeSystemEnvironmentPrivilege"
-	amdSevSnpGUIDStr       = "{4c3bddb9-c2b1-4cbd-9e0c-cb45e9e0e168}"
+	serviceName = "AmdSnpPsp"
 )
 
 const (
@@ -34,74 +33,111 @@ const (
 	SNPPSP_API_STATUS_DEVICE_NOT_AVAILABLE = 0x00000006
 )
 
-// TODO: These constants are duplicated (and slightly different) with pkg/amdsevsnp
+// TODO: Fix duplication with pkg/amdsevsnp and merge this into it.
 
 const (
-	SNPPSP_API_REPORT_DATA_SIZE                    = 64
-	SNPPSP_API_ATTESTATION_REPORT_SIZE             = 0x4A0
-	SNPPSP_API_REPORT_CURRENT_TCB_SIZE             = 8
-	SNPPSP_API_REPORT_MEASUREMENT_SIZE             = 48
-	SNPPSP_API_REPORT_HOST_DATA_SIZE               = 32
-	SNPPSP_API_REPORT_ID_KEY_DIGEST_SIZE           = 48
-	SNPPSP_API_REPORT_AUTHOR_KEY_DIGEST_SIZE       = 48
-	SNPPSP_API_REPORT_SNPPSP_API_REPORT_ID_SIZE    = 32
-	SNPPSP_API_REPORT_SNPPSP_API_REPORT_ID_MA_SIZE = 32
-	SNPPSP_API_REPORT_REPORTED_TCB_SIZE            = 8
-	SNPPSP_API_REPORT_RESERVED2_SIZE               = 21
-	SNPPSP_API_REPORT_CHIP_ID_SIZE                 = 64
-	SNPPSP_API_REPORT_COMMITTED_TCB_SIZE           = 8
-	SNPPSP_API_REPORT_LAUNCH_TCB_SIZE              = 8
-	SNPPSP_API_REPORT_RESERVED5_SIZE               = 168
-	SNPPSP_API_REPORT_SIGNATURE_SIZE               = 512
+	SNPPSP_API_REPORT_DATA_SIZE        = 64
+	SNPPSP_API_REPORT_HOST_DATA_SIZE   = 32
+	SNPPSP_API_ATTESTATION_REPORT_SIZE = 0x4A0
 )
-
-type SNPPSPUINT128 struct {
-	Lo uint64
-	Hi uint64
-}
 
 type SNPPSPGuestRequestResult struct {
 	DriverStatus uint32
 	PspStatus    uint64
 }
 
-type SNPAttestationReport struct {
-	Version         uint32
-	GuestSvn        uint32
-	Policy          uint64
-	FamilyId        SNPPSPUINT128
-	ImageId         SNPPSPUINT128
-	Vmpl            uint32
-	SignatureAlgo   uint32
-	CurrentTcb      [SNPPSP_API_REPORT_CURRENT_TCB_SIZE]uint8
-	PlatformInfo    uint64
-	AuthorKeyEn     uint32
-	Reserved1       uint32
-	ReportData      [SNPPSP_API_REPORT_DATA_SIZE]uint8
-	Measurement     [SNPPSP_API_REPORT_MEASUREMENT_SIZE]uint8
-	HostData        [SNPPSP_API_REPORT_HOST_DATA_SIZE]uint8
-	IdKeyDigest     [SNPPSP_API_REPORT_ID_KEY_DIGEST_SIZE]uint8
-	AuthorKeyDigest [SNPPSP_API_REPORT_AUTHOR_KEY_DIGEST_SIZE]uint8
-	ReportId        [SNPPSP_API_REPORT_SNPPSP_API_REPORT_ID_SIZE]uint8
-	ReportIdMa      [SNPPSP_API_REPORT_SNPPSP_API_REPORT_ID_MA_SIZE]uint8
-	ReportedTcb     [SNPPSP_API_REPORT_REPORTED_TCB_SIZE]uint8
-	CpuidFamId      uint8
-	CpuidModId      uint8
-	CpuidStep       uint8
-	Reserved2       [SNPPSP_API_REPORT_RESERVED2_SIZE]uint8
-	ChipId          [SNPPSP_API_REPORT_CHIP_ID_SIZE]uint8
-	CommittedTcb    [SNPPSP_API_REPORT_COMMITTED_TCB_SIZE]uint8
-	CurrentBuild    uint8
-	CurrentMinor    uint8
-	CurrentMajor    uint8
-	Reserved3       uint8
-	CommittedBuild  uint8
-	CommittedMinor  uint8
-	CommittedMajor  uint8
-	Reserved4       uint8
-	LaunchTcb       [SNPPSP_API_REPORT_LAUNCH_TCB_SIZE]uint8
-	Reserved5       [SNPPSP_API_REPORT_RESERVED5_SIZE]uint8
-	Signature       [SNPPSP_API_REPORT_SIGNATURE_SIZE]uint8
+type report struct {
+	Version          uint32
+	GuestSVN         uint32
+	Policy           uint64
+	FamilyID         [16]byte
+	ImageID          [16]byte
+	VMPL             uint32
+	SignatureAlgo    uint32
+	PlatformVersion  uint64
+	PlatformInfo     uint64
+	AuthorKeyEn      uint32
+	Reserved1        uint32
+	ReportData       [SNPPSP_API_REPORT_DATA_SIZE]byte
+	Measurement      [48]byte
+	HostData         [SNPPSP_API_REPORT_HOST_DATA_SIZE]byte
+	IDKeyDigest      [48]byte
+	AuthorKeyDigest  [48]byte
+	ReportID         [32]byte
+	ReportIDMA       [32]byte
+	ReportTCB        uint64
+	Reserved2        [24]byte
+	ChipID           [64]byte
+	CommittedSVN     [8]byte
+	CommittedVersion [8]byte
+	LaunchSVN        [8]byte
+	Reserved3        [168]byte
+	Signature        [512]byte
+}
+
+// Report represents parsed attestation report.
+type Report struct {
+	Version          uint32
+	GuestSVN         uint32
+	Policy           uint64
+	FamilyID         string
+	ImageID          string
+	VMPL             uint32
+	SignatureAlgo    uint32
+	PlatformVersion  uint64
+	PlatformInfo     uint64
+	AuthorKeyEn      uint32
+	ReportData       string
+	Measurement      string
+	HostData         []byte
+	IDKeyDigest      string
+	AuthorKeyDigest  string
+	ReportID         string
+	ReportIDMA       string
+	ReportTCB        uint64
+	ChipID           string
+	CommittedSVN     string
+	CommittedVersion string
+	LaunchSVN        string
+	Signature        string
+}
+
+func (sr *report) report() Report {
+	return Report{
+		Version:          sr.Version,
+		GuestSVN:         sr.GuestSVN,
+		Policy:           sr.Policy,
+		FamilyID:         hex.EncodeToString(mirrorBytes(sr.FamilyID[:])[:]),
+		ImageID:          hex.EncodeToString(mirrorBytes(sr.ImageID[:])[:]),
+		VMPL:             sr.VMPL,
+		SignatureAlgo:    sr.SignatureAlgo,
+		PlatformVersion:  sr.PlatformVersion,
+		PlatformInfo:     sr.PlatformInfo,
+		AuthorKeyEn:      sr.AuthorKeyEn,
+		ReportData:       hex.EncodeToString(sr.ReportData[:]),
+		Measurement:      hex.EncodeToString(sr.Measurement[:]),
+		HostData:         sr.HostData[:],
+		IDKeyDigest:      hex.EncodeToString(sr.IDKeyDigest[:]),
+		AuthorKeyDigest:  hex.EncodeToString(sr.AuthorKeyDigest[:]),
+		ReportID:         hex.EncodeToString(sr.ReportID[:]),
+		ReportIDMA:       hex.EncodeToString(sr.ReportIDMA[:]),
+		ReportTCB:        sr.ReportTCB,
+		ChipID:           hex.EncodeToString(sr.ChipID[:]),
+		CommittedSVN:     hex.EncodeToString(sr.CommittedSVN[:]),
+		CommittedVersion: hex.EncodeToString(sr.CommittedVersion[:]),
+		LaunchSVN:        hex.EncodeToString(sr.LaunchSVN[:]),
+		Signature:        hex.EncodeToString(sr.Signature[:]),
+	}
+}
+
+// mirrorBytes mirrors the byte ordering so that hex-encoding little endian
+// ordered bytes come out in the readable order.
+func mirrorBytes(b []byte) []byte {
+	for i := 0; i < len(b)/2; i++ {
+		mirrorIndex := len(b) - i - 1
+		b[i], b[mirrorIndex] = b[mirrorIndex], b[i]
+	}
+	return b
 }
 
 var (
@@ -242,18 +278,18 @@ func FetchRawSNPReport(reportData []byte) ([]byte, error) {
 }
 
 // FetchParsedSNPReport parses raw attestation response into proper structs.
-func FetchParsedSNPReport(reportData []byte) (SNPAttestationReport, error) {
+func FetchParsedSNPReport(reportData []byte) (Report, error) {
 	rawBytes, err := FetchRawSNPReport(reportData)
 	if err != nil {
-		return SNPAttestationReport{}, err
+		return Report{}, err
 	}
 
-	if len(rawBytes) != SNPPSP_API_ATTESTATION_REPORT_SIZE {
-		return SNPAttestationReport{}, fmt.Errorf("invalid attestation report size: %d", len(rawBytes))
+	var r report
+	buf := bytes.NewBuffer(rawBytes)
+	if err := binary.Read(buf, binary.LittleEndian, &r); err != nil {
+		return Report{}, err
 	}
-
-	reportStruct := (*SNPAttestationReport)(unsafe.Pointer(&rawBytes[0]))
-	return *reportStruct, nil
+	return r.report(), nil
 }
 
 // TODO: Based on internal\guest\runtime\hcsv2\hostdata.go and it's duplicated.

@@ -5,6 +5,7 @@ package uvm
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"os"
@@ -540,6 +541,17 @@ func CreateWCOW(ctx context.Context, opts *OptionsWCOW) (_ *UtilityVM, err error
 	if err != nil {
 		return nil, fmt.Errorf("error in preparing config doc: %w", err)
 	}
+
+	jsonDoc, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("error while marshaling the compute system document: %w", err)
+	}
+	file, err := os.Create("C:\\uvm.json")
+	if err == nil {
+		file.Write(jsonDoc)
+		file.Close()
+	}
+	fmt.Printf("jsonDoc: %s\n", jsonDoc)
 
 	err = uvm.create(ctx, doc)
 	if err != nil {

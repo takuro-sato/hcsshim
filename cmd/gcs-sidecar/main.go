@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/Microsoft/go-winio/pkg/guid"
 	"github.com/Microsoft/hcsshim/internal/gcs/prot"
 	shimlog "github.com/Microsoft/hcsshim/internal/log"
 	"github.com/Microsoft/hcsshim/internal/oc"
@@ -118,6 +120,43 @@ func runService(name string, isDebug bool) error {
 	return <-h.fromsvc
 }
 
+// GUID for hvsocketDebug
+// 65722b62-db94-4d5c-a656-ae70c9fc6233
+var WindowsHelloSidecarServiceID = guid.GUID{
+	Data1: 0x65722b62,
+	Data2: 0xdb94,
+	Data3: 0x4d5c,
+	Data4: [8]uint8{0xa6, 0x56, 0xae, 0x70, 0xc9, 0xfc, 0x62, 0x33},
+}
+
+func hvsocketDebug(message string, count int) {
+	hvsockAddr := &winio.HvsockAddr{
+		VMID: prot.HvGUIDParent,
+		// ServiceID: prot.WindowsSidecarGcsHvsockServiceID,
+		ServiceID: WindowsHelloSidecarServiceID,
+	}
+
+	ctx := context.Background()
+
+	helloCon, err := winio.Dial(ctx, hvsockAddr)
+	if err != nil {
+		fmt.Printf("failed to dial hvsock: %s\n", err)
+		return
+	}
+	defer helloCon.Close()
+
+	for i := 0; i < count; i++ {
+		_, err = helloCon.Write([]byte(message))
+		if err != nil {
+			fmt.Printf("failed to write to socket: %s\n", err)
+			return
+		}
+		if i < count-1 {
+			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
 func main() {
 	logLevel := flag.String("loglevel",
 		defaultLogLevel,
@@ -134,6 +173,20 @@ func main() {
 	}
 
 	flag.Parse()
+
+	hvsocketDebug("Starting gcs-sidecar", 1)
+
+	cmd := exec.Command("reg", "query", "HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion", "/v", "BuildLabEx")
+	output, err := cmd.Output()
+	if err != nil {
+		message := fmt.Sprintf("Error retrieving Windows version information: %v\n", err)
+		fmt.Println(message)
+		hvsocketDebug(message, 1)
+	} else {
+		message := fmt.Sprintf("Windows Version Information: %s", output)
+		fmt.Println(message)
+		hvsocketDebug(message, 1)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()

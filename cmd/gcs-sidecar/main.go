@@ -122,7 +122,7 @@ func runService(name string, isDebug bool) error {
 
 // GUID for hvsocketDebug
 // 65722b62-db94-4d5c-a656-ae70c9fc6233
-var WindowsHelloSidecarServiceID = guid.GUID{
+var WindowsGcsSidecarDebugServiceID = guid.GUID{
 	Data1: 0x65722b62,
 	Data2: 0xdb94,
 	Data3: 0x4d5c,
@@ -133,7 +133,7 @@ func hvsocketDebug(message string, count int) {
 	hvsockAddr := &winio.HvsockAddr{
 		VMID: prot.HvGUIDParent,
 		// ServiceID: prot.WindowsSidecarGcsHvsockServiceID,
-		ServiceID: WindowsHelloSidecarServiceID,
+		ServiceID: WindowsGcsSidecarDebugServiceID,
 	}
 
 	ctx := context.Background()

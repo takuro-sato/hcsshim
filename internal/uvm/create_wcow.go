@@ -259,6 +259,12 @@ func prepareCommonConfigDoc(ctx context.Context, uvm *UtilityVM, opts *OptionsWC
 		log.G(ctx).WithField("resource-partition-id", opts.ResourcePartitionID.String()).Debug("setting resource partition ID")
 	}
 
+	opts.AdditionalHyperVConfig["65722b62-db94-4d5c-a656-ae70c9fc6233"] = hcsschema.HvSocketServiceConfig{
+		BindSecurityDescriptor:    "D:P(A;;FA;;;WD)",
+		ConnectSecurityDescriptor: "D:P(A;;FA;;;SY)(A;;FA;;;BA)",
+		AllowWildcardBinds:        true,
+	}
+
 	maps.Copy(doc.VirtualMachine.Devices.HvSocket.HvSocketConfig.ServiceTable, opts.AdditionalHyperVConfig)
 
 	// Handle StorageQoS if set

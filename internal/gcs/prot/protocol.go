@@ -45,6 +45,14 @@ var HvGUIDParent = guid.GUID{
 	Data4: [8]uint8{0x9c, 0xc2, 0xa4, 0xde, 0x20, 0xab, 0xb8, 0x78},
 }
 
+// 90db8b89-0d35-4f79-8ce9-49ea0ac8b7cd
+var HvGUIDChildren = guid.GUID{
+	Data1: 0x90db8b89,
+	Data2: 0x0d35,
+	Data3: 0x4f79,
+	Data4: [8]uint8{0x8c, 0xe9, 0x49, 0xea, 0x0a, 0xc8, 0xb7, 0xcd},
+}
+
 // WindowsGcsHvsockServiceID is the hvsock service ID that the Windows GCS
 // will connect to.
 var WindowsGcsHvsockServiceID = guid.GUID{
@@ -61,6 +69,15 @@ var WindowsSidecarGcsHvsockServiceID = guid.GUID{
 	Data2: 0xa019,
 	Data3: 0x4553,
 	Data4: [8]uint8{0xa5, 0x2b, 0x90, 0x2b, 0xc0, 0xfa, 0x04, 0x11},
+}
+
+// WindowsGcsSidecarDebugServiceID is used for debug printing in with hvsocket.
+// 65722b62-db94-4d5c-a656-ae70c9fc6233
+var WindowsGcsSidecarDebugServiceID = guid.GUID{
+	Data1: 0x65722b62,
+	Data2: 0xdb94,
+	Data3: 0x4d5c,
+	Data4: [8]uint8{0xa6, 0x56, 0xae, 0x70, 0xc9, 0xfc, 0x62, 0x33},
 }
 
 // WindowsGcsHvHostID is the hvsock address for the parent of the VM running the GCS

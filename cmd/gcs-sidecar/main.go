@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/Microsoft/go-winio/pkg/guid"
 	"github.com/Microsoft/hcsshim/internal/gcs/prot"
 	shimlog "github.com/Microsoft/hcsshim/internal/log"
 	"github.com/Microsoft/hcsshim/internal/oc"
@@ -120,20 +119,10 @@ func runService(name string, isDebug bool) error {
 	return <-h.fromsvc
 }
 
-// GUID for hvsocketDebug
-// 65722b62-db94-4d5c-a656-ae70c9fc6233
-var WindowsGcsSidecarDebugServiceID = guid.GUID{
-	Data1: 0x65722b62,
-	Data2: 0xdb94,
-	Data3: 0x4d5c,
-	Data4: [8]uint8{0xa6, 0x56, 0xae, 0x70, 0xc9, 0xfc, 0x62, 0x33},
-}
-
 func hvsocketDebug(message string, count int) {
 	hvsockAddr := &winio.HvsockAddr{
-		VMID: prot.HvGUIDParent,
-		// ServiceID: prot.WindowsSidecarGcsHvsockServiceID,
-		ServiceID: WindowsGcsSidecarDebugServiceID,
+		VMID:      prot.HvGUIDParent,
+		ServiceID: prot.WindowsGcsSidecarDebugServiceID,
 	}
 
 	ctx := context.Background()

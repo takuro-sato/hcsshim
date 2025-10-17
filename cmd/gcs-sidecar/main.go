@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -174,6 +175,28 @@ func (w *HVSocketWriter) Write(p []byte) (n int, err error) {
 	return conn.Write(p)
 }
 
+// TODO: It's not working with "failed to setup networking for pod" when creating a pod.
+// MultiWriter wraps multiple writers and writes to all of them
+type MultiWriter struct {
+	writers []io.Writer
+}
+
+// NewMultiWriter creates a writer that writes to all provided writers
+func NewMultiWriter(writers ...io.Writer) *MultiWriter {
+	return &MultiWriter{writers: writers}
+}
+
+// Write implements io.Writer interface
+func (mw *MultiWriter) Write(p []byte) (n int, err error) {
+	for _, w := range mw.writers {
+		n, err = w.Write(p)
+		if err != nil {
+			return n, err
+		}
+	}
+	return len(p), nil
+}
+
 func main() {
 	logLevel := flag.String("loglevel",
 		defaultLogLevel,
@@ -209,12 +232,14 @@ func main() {
 	// Create HVSocket writer for logging
 	hvsockWriter := NewHVSocketDebugWriter()
 
-	// Still create file handle for stderr redirection, but use HVSocket for bridge logging
 	logFileHandle, err := os.OpenFile(*logFile, os.O_RDWR|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
 	}
 	defer logFileHandle.Close()
+
+	// Create a multi-writer that writes to both file and HVSocket
+	// multiWriter := NewMultiWriter(logFileHandle, hvsockWriter)
 
 	logrus.AddHook(shimlog.NewHook())
 
@@ -298,7 +323,7 @@ func main() {
 	initialEnforcer := &securitypolicy.ClosedDoorSecurityPolicyEnforcer{}
 
 	// 3. Create bridge and initialize with HVSocket writer for logging
-	brdg := sidecar.NewBridge(shimCon, gcsCon, initialEnforcer, hvsockWriter)
+	brdg := sidecar.NewBridge(shimCon, gcsCon, initialEnforcer, hvsockWriter /*multiWriter*/)
 	brdg.AssignHandlers()
 
 	// 3. Listen and serve for hcsshim requests.

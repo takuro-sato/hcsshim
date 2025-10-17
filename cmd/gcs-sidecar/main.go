@@ -146,6 +146,34 @@ func hvsocketDebug(message string, count int) {
 	}
 }
 
+// HVSocketWriter implements io.Writer interface for HVSocket-based logging
+type HVSocketWriter struct {
+	addr *winio.HvsockAddr
+}
+
+// NewHVSocketDebugWriter creates a new HVSocketWriter for debugging with WindowsGcsSidecarDebugServiceID.
+func NewHVSocketDebugWriter() *HVSocketWriter {
+	return &HVSocketWriter{
+		addr: &winio.HvsockAddr{
+			VMID:      prot.HvGUIDParent,
+			ServiceID: prot.WindowsGcsSidecarDebugServiceID,
+		},
+	}
+}
+
+// Write implements the io.Writer interface
+func (w *HVSocketWriter) Write(p []byte) (n int, err error) {
+	ctx := context.Background()
+
+	conn, err := winio.Dial(ctx, w.addr)
+	if err != nil {
+		return 0, fmt.Errorf("failed to dial hvsock: %w", err)
+	}
+	defer conn.Close()
+
+	return conn.Write(p)
+}
+
 func main() {
 	logLevel := flag.String("loglevel",
 		defaultLogLevel,
@@ -169,17 +197,19 @@ func main() {
 	output, err := cmd.Output()
 	if err != nil {
 		message := fmt.Sprintf("Error retrieving Windows version information: %v\n", err)
-		fmt.Println(message)
 		hvsocketDebug(message, 1)
 	} else {
 		message := fmt.Sprintf("Windows Version Information: %s", output)
-		fmt.Println(message)
 		hvsocketDebug(message, 1)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
+	// Create HVSocket writer for logging
+	hvsockWriter := NewHVSocketDebugWriter()
+
+	// Still create file handle for stderr redirection, but use HVSocket for bridge logging
 	logFileHandle, err := os.OpenFile(*logFile, os.O_RDWR|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
@@ -267,8 +297,8 @@ func main() {
 	// This is updated later with user provided policy.
 	initialEnforcer := &securitypolicy.ClosedDoorSecurityPolicyEnforcer{}
 
-	// 3. Create bridge and initializa
-	brdg := sidecar.NewBridge(shimCon, gcsCon, initialEnforcer, logFileHandle)
+	// 3. Create bridge and initialize with HVSocket writer for logging
+	brdg := sidecar.NewBridge(shimCon, gcsCon, initialEnforcer, hvsockWriter)
 	brdg.AssignHandlers()
 
 	// 3. Listen and serve for hcsshim requests.

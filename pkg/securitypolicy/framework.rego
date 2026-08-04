@@ -2899,6 +2899,7 @@ allow_dump_stacks := data.policy.allow_dump_stacks
 allow_runtime_logging := data.policy.allow_runtime_logging
 allow_environment_variable_dropping := data.policy.allow_environment_variable_dropping
 allow_unencrypted_scratch := data.policy.allow_unencrypted_scratch
+allow_hostnetwork := data.policy.allow_hostnetwork
 
 # all flags not in the base set need to have default logic applied
 

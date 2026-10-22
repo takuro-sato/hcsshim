@@ -391,6 +391,9 @@ func (b *Bridge) executeProcess(req *request) (err error) {
 		return fmt.Errorf("executeProcess: application name is not supported by security policy")
 	}
 
+	// TODO: Parse the Windows CommandLine into argv for exec policy enforcement
+	// rather than treating it as one argument.
+	// The current representation mismatches argv-based exec_processes policies.
 	commandLine := []string{processParams.CommandLine}
 
 	if containerID == UVMContainerID {
